@@ -1,4 +1,5 @@
 import { type Badge, type Product, bgClass, getCategory } from "@/lib/catalog";
+import AddToBag from "./add-to-bag";
 import {
   AccessoriesIcon,
   JarIcon,
@@ -14,7 +15,7 @@ const badgeClass: Record<Badge, string> = {
   Available: "bg-teal",
 };
 
-function ProductArt({ product }: { product: Product }) {
+export function ProductArt({ product }: { product: Product }) {
   const [first] = product.palette;
   switch (product.category) {
     case "thc-gummies":
@@ -64,12 +65,10 @@ export default function ProductCard({
         </p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5 pt-[17px]">
           <span className="text-lg font-medium sm:text-[22px]">[Price]</span>
-          <button
-            type="button"
+          <AddToBag
+            id={product.id}
             className="h-10 rounded-[10px] bg-pink px-3.5 text-sm font-bold sm:h-[43px] sm:px-[18px] sm:text-[15.5px]"
-          >
-            Add to bag
-          </button>
+          />
         </div>
         <p className="mt-[9px] text-xs leading-5 text-[#666] sm:text-[13.5px] sm:leading-[21px]">
           {note}

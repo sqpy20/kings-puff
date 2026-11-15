@@ -102,7 +102,7 @@ export const products: Product[] = [
   { id: "backwood-wraps-variety", name: "Backwood Wraps — Variety", category: "backwood-wraps", meta: WRAP_META, note: TOBACCO_NOTE, badge: "Available", palette: ["purple"] },
   { id: "backwood-wraps-honey", name: "Backwood Wraps — Honey", category: "backwood-wraps", meta: WRAP_META, note: TOBACCO_NOTE, palette: ["pink"] },
 
-  { id: "royal-grinder", name: "Royal Grinder", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, badge: "Featured", palette: ["pink"] },
+  { id: "crown-grinder", name: "Crown Grinder", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, badge: "Featured", palette: ["pink"] },
   { id: "crown-rolling-tray", name: "Crown Rolling Tray", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["purple"] },
   { id: "kings-puff-battery", name: "Kings Puff Battery", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["orange"] },
 ];
@@ -127,3 +127,15 @@ export const bgClass: Record<ColorName, string> = {
   orange: "bg-orange",
   teal: "bg-teal",
 };
+
+/** Short compliance tag shown on bag and checkout lines. */
+export function productTag(product: Product): { label: string; className: string } {
+  switch (product.category) {
+    case "backwood-wraps":
+      return { label: "Tobacco · 21+", className: "bg-sand" };
+    case "accessories":
+      return { label: "21+", className: "bg-sand" };
+    default:
+      return { label: "Contains THC · 21+", className: "bg-lime" };
+  }
+}

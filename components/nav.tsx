@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { navLinks } from "@/lib/nav";
+import CartLink from "./cart-link";
 import NavLinks, { NavLinkList } from "./nav-links";
 
 export default function Nav() {
@@ -40,28 +41,7 @@ export default function Nav() {
                 <path d="m20 20-3.6-3.6" />
               </svg>
             </button>
-            <button
-              aria-label="Cart"
-              type="button"
-              className="flex items-center gap-2"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 8h14v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8Z" />
-                <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-              </svg>
-              <span className="grid size-[26px] place-items-center rounded-full bg-lime text-xs font-bold">
-                0
-              </span>
-            </button>
+            <CartLink />
             {/* Mobile menu: <details> so it opens without client JS. */}
             <details className="group md:hidden">
               <summary
