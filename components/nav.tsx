@@ -1,11 +1,7 @@
 import Link from "next/link";
-
-const links = [
-  { href: "/shop", label: "Shop", active: true },
-  { href: "/collections", label: "Collections" },
-  { href: "/about", label: "About" },
-  { href: "/faq", label: "FAQ" },
-];
+import { Suspense } from "react";
+import { navLinks } from "@/lib/nav";
+import NavLinks, { NavLinkList } from "./nav-links";
 
 export default function Nav() {
   return (
@@ -25,19 +21,10 @@ export default function Nav() {
               ®
             </sup>
           </Link>
-          <nav className="hidden gap-[35px] md:flex">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`border-b-2 pb-[5px] text-lg leading-6 font-semibold ${
-                  l.active ? "border-ink" : "border-transparent"
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          {/* usePathname can suspend on unknown dynamic routes; fall back to no highlight. */}
+          <Suspense fallback={<NavLinkList />}>
+            <NavLinks />
+          </Suspense>
           <div className="flex items-center gap-5 md:gap-[30px] xl:mr-[9px]">
             <button aria-label="Search" type="button">
               <svg
@@ -101,9 +88,9 @@ export default function Nav() {
                 </svg>
               </summary>
               <nav className="absolute inset-x-0 top-full z-20 flex flex-col border-b border-ink/10 bg-cream px-5 pt-1 pb-4 sm:px-8">
-                {links.map((l) => (
+                {navLinks.map((l) => (
                   <Link
-                    key={l.href}
+                    key={l.label}
                     href={l.href}
                     className="border-b border-ink/10 py-3.5 text-lg font-semibold last:border-0"
                   >

@@ -31,7 +31,7 @@ export default function Hero() {
               <ArrowIcon className="size-[18px]" />
             </Link>
             <Link
-              href="/collections"
+              href="/shop"
               className="inline-flex h-14 items-center rounded-full border-2 border-ink px-7 text-[17px] font-bold"
             >
               Browse collections

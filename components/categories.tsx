@@ -36,7 +36,7 @@ export default function Categories() {
           // Sizes inside each card scale with the card's own width (cqw).
           <li key={slug} className="@container">
             <Link
-              href={`/collections/${slug}`}
+              href={`/shop/${slug}`}
               className={`flex aspect-square flex-col rounded-[clamp(20px,10.6cqw,28px)] p-[clamp(14px,9.8cqw,26px)] ${color}`}
             >
               <div className="flex min-h-0 flex-1 items-start justify-center">

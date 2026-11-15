@@ -1,21 +1,25 @@
 import Link from "next/link";
+import { categories } from "@/lib/catalog";
 
-const shop = [
-  "THC Gummies",
-  "Vapes",
-  "Rosin Syrup",
-  "Backwood Wraps",
-  "Accessories",
-];
-const help = [
+type FooterLink = { label: string; href: string };
+
+const shop: FooterLink[] = categories.map((c) => ({
+  label: c.label,
+  href: `/shop/${c.slug}`,
+}));
+const helpHrefs: Record<string, string> = {
+  FAQ: "/faq",
+  "Contact us": "/faq#contact",
+};
+const help: FooterLink[] = [
   "FAQ",
   "Shipping & availability",
   "Lab results",
   "Contact us",
   "Instagram",
-];
+].map((label) => ({ label, href: helpHrefs[label] ?? "#" }));
 
-function Column({ title, items }: { title: string; items: string[] }) {
+function Column({ title, items }: { title: string; items: FooterLink[] }) {
   return (
     <div className="pt-[3px]">
       <h3 className="text-[11px] leading-4 font-bold tracking-[0.12em] uppercase">
@@ -23,9 +27,9 @@ function Column({ title, items }: { title: string; items: string[] }) {
       </h3>
       <ul className="mt-1.5">
         {items.map((item) => (
-          <li key={item}>
-            <Link href="#" className="block py-1 text-[17px] leading-7">
-              {item}
+          <li key={item.label}>
+            <Link href={item.href} className="block py-1 text-[17px] leading-7">
+              {item.label}
             </Link>
           </li>
         ))}
