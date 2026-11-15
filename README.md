@@ -1,7 +1,8 @@
 # king-puff
 
 ```bash
-pnpm dev
+pnpm dev  // dev
 pnpm build
 pnpm lint
 ```
+
