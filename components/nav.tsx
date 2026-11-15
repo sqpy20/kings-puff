@@ -9,12 +9,12 @@ const links = [
 
 export default function Nav() {
   return (
-    <header>
+    <>
       <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-xs font-medium text-white sm:text-sm">
         21+ only · Shipping to [eligible states] where legal · Free shipping
         over [amount]
       </div>
-      <div className="relative border-b border-ink/10 bg-cream">
+      <header className="sticky top-0 z-30 border-b border-ink/10 bg-cream">
         <div className="shell flex h-[68px] items-center justify-between md:h-[87px]">
           <Link
             href="/"
@@ -114,7 +114,7 @@ export default function Nav() {
             </details>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
