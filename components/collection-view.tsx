@@ -18,7 +18,7 @@ export default function CollectionView({ category }: { category?: Category }) {
   const title = category?.label ?? "Shop all";
   const description =
     category?.description ??
-    "Everything in the Kings Puff lineup, in one place. Filter by category to find your vibe.";
+    "Everything in the Momo Eliquid lineup, in one place. Filter by category to find your vibe.";
   const color = category?.color ?? "pink";
 
   return (

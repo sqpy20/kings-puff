@@ -45,7 +45,7 @@ export default function Story() {
               standards.
             </h2>
             <p className="mt-[26px] max-w-[600px] text-lg leading-[1.68] xl:text-[19px]">
-              Kings Puff started with a simple idea: the stuff we love should
+              Momo Eliquid started with a simple idea: the stuff we love should
               look as good as it feels to share. So we packed bold colour and
               good vibes into every product, and kept the boring parts —
               potency, ingredients, batch info — clear and easy to find.

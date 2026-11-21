@@ -7,18 +7,17 @@ import NavLinks, { NavLinkList } from "./nav-links";
 export default function Nav() {
   return (
     <>
-      <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-xs font-medium text-white sm:text-sm">
-        21+ only · Shipping to [eligible states] where legal · Free shipping
-        over [amount]
+      <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-xs font-medium sm:text-sm text-red-500">
+        Order before 2PM for same-day dispatch!
       </div>
       <header className="sticky top-0 z-30 border-b border-ink/10 bg-cream">
-        <div className="shell flex h-[68px] items-center justify-between md:h-[87px]">
+        <div className="shell flex h-17 items-center justify-between md:h-21.75">
           <Link
             href="/"
             className="-translate-y-0.5 text-[26px] leading-none font-extrabold tracking-[-0.04em] md:text-[32px]"
           >
-            Kings Puff
-            <sup className="relative -top-[1.1em] ml-px text-[8px] tracking-normal">
+            Momo Eliquid
+            <sup className="relative top-[-1.1em] ml-px text-[8px] tracking-normal">
               ®
             </sup>
           </Link>
@@ -26,7 +25,7 @@ export default function Nav() {
           <Suspense fallback={<NavLinkList />}>
             <NavLinks />
           </Suspense>
-          <div className="flex items-center gap-5 md:gap-[30px] xl:mr-[9px]">
+          <div className="flex items-center gap-5 md:gap-7.5 xl:mr-2.25">
             <button aria-label="Search" type="button">
               <svg
                 width="22"

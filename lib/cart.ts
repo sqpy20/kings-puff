@@ -6,9 +6,9 @@ import { type Product, products } from "./catalog";
 // The bag lives in the browser's localStorage, so it survives reloads but is
 // per-device. Components stay in sync through a custom event (same tab) and
 // the native "storage" event (other tabs).
-const CART_KEY = "kings-puff-cart";
-const STATE_KEY = "kings-puff-ship-state";
-const CHANGE_EVENT = "kings-puff-storage";
+const CART_KEY = "momo-eliquid-cart";
+const STATE_KEY = "momo-eliquid-ship-state";
+const CHANGE_EVENT = "momo-eliquid-storage";
 const MAX_QTY = 99;
 
 export type CartLine = { product: Product; qty: number };

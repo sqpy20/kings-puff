@@ -60,7 +60,7 @@ export const categories: Category[] = [
     label: "Backwood Wraps",
     short: "Backwood Wraps",
     description:
-      "Slow-burning wraps in classic and flavoured packs. Tobacco product, 21+ only.",
+      "Slow-burning wraps in classic and flavoured packs. Tobacco product.",
     color: "lime",
   },
   {
@@ -104,7 +104,7 @@ export const products: Product[] = [
 
   { id: "crown-grinder", name: "Crown Grinder", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, badge: "Featured", palette: ["pink"] },
   { id: "crown-rolling-tray", name: "Crown Rolling Tray", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["purple"] },
-  { id: "kings-puff-battery", name: "Kings Puff Battery", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["orange"] },
+  { id: "momo-eliquid-battery", name: "Momo Eliquid Battery", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["orange"] },
 ];
 
 export function getCategory(slug: string): Category | undefined {

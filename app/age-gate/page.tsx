@@ -6,7 +6,7 @@ import GateCard, {
 } from "@/components/gate-card";
 
 export const metadata: Metadata = {
-  title: "Are you 21 or older? · Kings Puff",
+  title: "Are you 21 or older? · Momo Eliquid",
 };
 
 export default function AgeGate() {

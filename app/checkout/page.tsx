@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import Nav from "@/components/nav";
 
 export const metadata: Metadata = {
-  title: "Checkout · Kings Puff",
+  title: "Checkout · Momo Eliquid",
 };
 
 export default function CheckoutPage() {
