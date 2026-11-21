@@ -3,7 +3,8 @@ import Link from "next/link";
 import GateCard, { gatePrimaryButton } from "@/components/gate-card";
 
 export const metadata: Metadata = {
-  title: "Page not found · Momo Eliquid",
+  title: "Page not found",
+  robots: { index: false, follow: true },
 };
 
 export default function NotFound() {

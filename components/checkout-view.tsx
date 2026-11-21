@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
+import { useAttribution } from "@/lib/backlinks";
 import { useCart, useShipState } from "@/lib/cart";
 import {
   FREE_SHIPPING_THRESHOLD,
@@ -119,6 +120,8 @@ function RadioGroup({
 
 export default function CheckoutView() {
   const { ready, lines, count } = useCart();
+  const attribution = useAttribution();
+  const touch = attribution.lastTouch ?? attribution.firstTouch;
   const [shipState, setShipState] = useShipState();
   const [errors, setErrors] = useState<Errors>({});
   const [shipping, setShipping] = useState("express");
@@ -214,6 +217,27 @@ export default function CheckoutView() {
             onSubmit={onSubmit}
             className="space-y-10 rounded-[28px] bg-white px-5 py-8 sm:px-10 sm:py-10"
           >
+            <input type="hidden" name="refSource" value={touch?.ref ?? ""} />
+            <input
+              type="hidden"
+              name="utmSource"
+              value={touch?.utmSource ?? ""}
+            />
+            <input
+              type="hidden"
+              name="utmCampaign"
+              value={touch?.utmCampaign ?? ""}
+            />
+            <input
+              type="hidden"
+              name="referrer"
+              value={touch?.referrer ?? ""}
+            />
+            <input
+              type="hidden"
+              name="landingPath"
+              value={touch?.landingPath ?? ""}
+            />
             <section>
               <SectionTitle>Contact information</SectionTitle>
               <Field label="Email address" error={errors.email} className="mt-5">
