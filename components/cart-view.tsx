@@ -98,7 +98,7 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
   const [confirmed, setConfirmed] = useState(false);
   const [promoTried, setPromoTried] = useState(false);
   const blocked = !state
-    ? "Choose a shipping state to continue"
+    ? "Choose a delivery county to continue"
     : !confirmed
       ? "Confirm your age to continue"
       : null;
@@ -117,7 +117,7 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
           onChange={(e) => setState(e.target.value)}
           className="mt-2.5 block h-[54px] w-full rounded-xl border-2 border-ink bg-white px-[18px] text-[17px] font-medium"
         >
-          <option value="">Select your state</option>
+          <option value="">Select your county / region</option>
           {states.map((s) => (
             <option key={s}>{s}</option>
           ))}

@@ -20,6 +20,7 @@ export default function CollectionView({ category }: { category?: Category }) {
     category?.description ??
     "Everything in the Momo Eliquid lineup, in one place. Filter by category to find your vibe.";
   const color = category?.color ?? "pink";
+  const bannerImage = category ? list[0]?.image : "/logo.jpg";
 
   return (
     <>
@@ -46,8 +47,12 @@ export default function CollectionView({ category }: { category?: Category }) {
             color === "purple" ? "text-white" : ""
           }`}
         >
-          <RingsArt className="absolute top-[44%] -right-[79px] hidden w-[464px] -translate-y-1/2 md:block" />
-          <div className="relative">
+          <RingsArt
+            className="absolute top-[44%] -right-[79px] hidden w-[464px] -translate-y-1/2 md:block"
+            image={bannerImage}
+            alt={category ? `${category.label} collection` : "Momo Eliquid"}
+          />
+          <div className="relative z-10 md:pr-[240px] lg:pr-[260px]">
             <p className="inline-flex h-[30px] items-center rounded-full bg-ink px-[13px] text-[11.5px] font-bold tracking-[0.1em] text-white uppercase">
               {list.length} products
             </p>

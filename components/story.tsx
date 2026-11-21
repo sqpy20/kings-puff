@@ -1,12 +1,46 @@
-const values = [
-  { title: "Clear labels", text: "Potency and ingredients on every pack.", color: "bg-pink" },
-  { title: "Batch info", text: "[Link to certificates of analysis.]", color: "bg-lime" },
-  { title: "21+ always", text: "ID verified before every order.", color: "bg-teal" },
-  { title: "Loud colour", text: "Designed to stand out on any shelf.", color: "bg-orange" },
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowIcon } from "./illustrations";
+
+const highlights = [
+  {
+    title: "Signature E-Liquids",
+    text: "60 ml shortfills & crisp 10 ml nic salts blended for bold, all-day fruit flavour.",
+    image: "/vapes/image-1.png",
+    href: "/shop/vapes",
+    color: "bg-pink",
+  },
+  {
+    title: "Dosed Gummies",
+    text: "Sugar-coated rings, bites & cubes accurately dosed at 10–15 mg THC per piece.",
+    image: "/gummies/image-3.webp",
+    href: "/shop/gummies",
+    color: "bg-lime",
+  },
+  {
+    title: "Small-Batch Kush",
+    text: "Dense, frosty 3.5 g and 7 g flower pouches sealed fresh at 22–26% THC.",
+    image: "/kush/image-2.webp",
+    href: "/shop/kush",
+    color: "bg-teal",
+  },
+  {
+    title: "ExPod Pro Pods",
+    text: "Ready-to-vape 2 ml prefilled pods at 20 mg/ml for instant Cola Gummy flavour.",
+    image: "/vapes/image-3.jpeg",
+    href: "/shop/vapes",
+    color: "bg-orange",
+  },
+];
+
+const badges = [
+  "Vapes · Gummies · Kush",
+  "Same-day dispatch before 2PM",
+  "18+ verified · Clear labels",
 ];
 
 // Repeating wavy edge in the section colour; `flip` turns it into the bottom
-// edge, which sits on the sand background of the FAQ section that follows.
+// edge, which sits on the sand background of the FAQ / Contact section that follows.
 function Wave({ flip = false }: { flip?: boolean }) {
   const id = flip ? "story-wave-bottom" : "story-wave-top";
   return (
@@ -33,41 +67,72 @@ export default function Story() {
       <Wave />
       <div className="bg-purple text-white">
         <div className="shell flex flex-col gap-12 pt-10 pb-12 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pt-[79px] lg:pb-[104px]">
-          <div className="lg:w-[43%]">
-            <p className="text-[11.5px] leading-4 font-bold tracking-[0.1em] uppercase">
-              Our story
+          <div className="lg:w-[44%]">
+            <p className="text-[11.5px] leading-4 font-bold tracking-widest uppercase">
+              Inside the lineup
             </p>
-            <h2 className="mt-7 text-[40px] leading-[1.07] font-extrabold tracking-[-0.04em] sm:text-[52px] xl:text-[60px]">
-              Free spirits,{" "}
+            <h2 className="mt-6 text-[40px] leading-[1.07] font-extrabold tracking-[-0.04em] sm:text-[52px] xl:text-[60px]">
+              Crafted to{" "}
               <em className="font-serif text-[1.08em] leading-[0] font-normal tracking-[-0.02em]">
-                serious
+                taste
               </em>{" "}
-              standards.
+              unforgettable.
             </h2>
-            <p className="mt-[26px] max-w-[600px] text-lg leading-[1.68] xl:text-[19px]">
-              Momo Eliquid started with a simple idea: the stuff we love should
-              look as good as it feels to share. So we packed bold colour and
-              good vibes into every product, and kept the boring parts —
-              potency, ingredients, batch info — clear and easy to find.
+            <p className="mt-6 max-w-[600px] text-lg leading-[1.68] xl:text-[19px]">
+              Every drop from Momo Eliquid is built for people who care about
+              flavour as much as potency. From UK-made e-liquids like our
+              signature Soda-lish shortfill and crisp Kuro Momo Fuji nic salts
+              to grab-and-go ExPod Pro pods, every blend delivers clean, layered
+              fruit notes from first pull to last.
             </p>
-            <p className="mt-6 text-[17px] leading-7">
-              [Add founding story, location and year.]
+            <p className="mt-5 max-w-[600px] text-[17px] leading-7 text-white/90">
+              Beyond vapes, the lineup includes sugar-dusted gummies — Blue
+              Raspberry Rings, Wild Berry Bites, and Sour Apple Cubes — dosed
+              clearly per piece, alongside small-batch Kush flower sealed fresh
+              for rich terpene aroma.
             </p>
+            <ul className="mt-7 flex flex-wrap gap-2.5">
+              {badges.map((label) => (
+                <li
+                  key={label}
+                  className="inline-flex h-8 items-center rounded-full bg-white/15 px-3.5 text-xs font-bold tracking-[0.04em] text-white sm:text-[13px]"
+                >
+                  {label}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/shop"
+              className="mt-8 inline-flex h-14 items-center gap-1.5 rounded-full bg-lime px-7 text-[17px] font-bold text-ink"
+            >
+              Explore the full range
+              <ArrowIcon className="size-[18px]" />
+            </Link>
           </div>
           {/* On desktop the right-hand column of cards sits 52px lower. */}
-          <ul className="grid grid-cols-2 gap-4 text-ink lg:w-[48.2%] lg:gap-x-[18px] lg:gap-y-[70px] lg:pb-[52px]">
-            {values.map((v) => (
-              <li key={v.title} className="@container lg:even:translate-y-[52px]">
-                <div
-                  className={`flex aspect-square flex-col justify-end rounded-[clamp(20px,8.4cqw,28px)] p-[clamp(14px,7.8cqw,26px)] ${v.color}`}
+          <ul className="grid grid-cols-2 gap-4 text-ink lg:w-[50%] lg:gap-x-[18px] lg:gap-y-7 lg:pb-[52px]">
+            {highlights.map((item) => (
+              <li key={item.title} className="lg:even:translate-y-[52px]">
+                <Link
+                  href={item.href}
+                  className={`group flex h-full flex-col rounded-[22px] p-3 sm:rounded-[28px] sm:p-4 lg:p-5 ${item.color}`}
                 >
-                  <h3 className="text-[clamp(17px,7.2cqw,24px)] leading-[1.3] font-extrabold tracking-[-0.01em]">
-                    {v.title}
+                  <div className="relative aspect-square w-full overflow-hidden rounded-[14px] border-2 border-ink bg-white sm:rounded-[18px]">
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      sizes="(min-width: 1024px) 22vw, 45vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="mt-3 text-base leading-snug font-extrabold tracking-[-0.01em] sm:mt-4 sm:text-xl lg:text-[22px]">
+                    {item.title}
                   </h3>
-                  <p className="mt-[3px] text-[clamp(13px,4.5cqw,15px)] leading-[1.45]">
-                    {v.text}
+                  <p className="mt-1 text-xs leading-[1.45] sm:text-sm lg:text-[15px]">
+                    {item.text}
                   </p>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>

@@ -19,8 +19,7 @@ export default function Hero() {
           </h1>
           <p className="mt-[25px] max-w-[520px] text-[17px] leading-[31.5px]">
             Vapes, gummies and kush in loud colours, with clear
-            potency and ingredient info on every pack. For adults 21+ where
-            legal.
+            potency and ingredient info on every pack.
           </p>
           <div className="mt-[35px] flex flex-wrap gap-3.5">
             <Link

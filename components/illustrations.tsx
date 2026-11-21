@@ -95,17 +95,46 @@ export function HeroArt({ className }: { className?: string }) {
 }
 
 /** Outlined concentric rings used on the collection banner. */
-export function RingsArt(props: Props) {
+export function RingsArt({
+  className,
+  image,
+  alt = "",
+}: {
+  className?: string;
+  image?: string;
+  alt?: string;
+}) {
   return (
-    <svg viewBox="0 0 464 464" fill="none" aria-hidden="true" {...props}>
-      <g stroke={INK} strokeWidth="3">
-        <circle cx="232" cy="232" r="229" />
-        <circle cx="232" cy="232" r="181" />
-        <circle cx="232" cy="232" r="133" />
-        <circle cx="232" cy="232" r="85" />
-        <circle cx="232" cy="232" r="36" fill={CREAM} />
-      </g>
-    </svg>
+    <div className={`aspect-square ${className ?? ""}`}>
+      <div className="relative size-full">
+        <svg
+          viewBox="0 0 464 464"
+          fill="none"
+          aria-hidden="true"
+          className="size-full"
+        >
+          <g stroke={INK} strokeWidth="3">
+            <circle cx="232" cy="232" r="229" />
+            <circle cx="232" cy="232" r="181" />
+            <circle cx="232" cy="232" r="133" />
+            <circle cx="232" cy="232" r="85" />
+            {!image && <circle cx="232" cy="232" r="36" fill={CREAM} />}
+          </g>
+        </svg>
+        {image && (
+          <div className="absolute top-1/2 left-1/2 size-[36.6%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[3px] border-ink bg-cream shadow-[4px_4px_0_var(--color-ink)]">
+            <Image
+              src={image}
+              alt={alt}
+              fill
+              sizes="170px"
+              preload
+              className="object-cover"
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

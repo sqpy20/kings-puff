@@ -2,6 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { type Product, products } from "./catalog";
+import { states } from "./states";
 
 // The bag lives in the browser's localStorage, so it survives reloads but is
 // per-device. Components stay in sync through a custom event (same tab) and
@@ -106,8 +107,9 @@ export function useCart() {
   };
 }
 
-/** The shipping state picked in the bag, shared with checkout. */
+/** The shipping county/region picked in the bag, shared with checkout. */
 export function useShipState(): [string, (state: string) => void] {
   const raw = useStored(STATE_KEY);
-  return [raw ?? "", (state) => writeRaw(STATE_KEY, state)];
+  const valid = raw && states.includes(raw) ? raw : "";
+  return [valid, (state) => writeRaw(STATE_KEY, state)];
 }

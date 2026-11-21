@@ -36,10 +36,10 @@ function validate(data: FormData): Errors {
   if (!get("firstName")) errors.firstName = "Please enter a valid first name";
   if (!get("lastName")) errors.lastName = "Please enter a valid last name";
   if (!get("address")) errors.address = "Please enter a valid address";
-  if (!get("city")) errors.city = "Please enter a valid city";
-  if (!get("state")) errors.state = "Please select a state";
-  if (!/^\d{5}(-\d{4})?$/.test(get("zip")))
-    errors.zip = "Please enter a valid ZIP code";
+  if (!get("city")) errors.city = "Please enter a valid town or city";
+  if (!get("state")) errors.state = "Please select a county / region";
+  if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(get("zip")))
+    errors.zip = "Please enter a valid UK postcode";
   if (get("payment") === "crypto" && !get("currency"))
     errors.currency = "Please select a currency";
   return errors;
@@ -234,7 +234,7 @@ export default function CheckoutView() {
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <Field label="Country / Region" className="sm:col-span-2">
                   <select name="country" className={`${control} border-ink`}>
-                    <option>United States (US)</option>
+                    <option>United Kingdom (UK)</option>
                   </select>
                 </Field>
                 <Field label="First name" error={errors.firstName}>
@@ -263,10 +263,10 @@ export default function CheckoutView() {
                     + Add apartment, suite, etc.
                   </button>
                 )}
-                <Field label="City" error={errors.city}>
+                <Field label="Town / City" error={errors.city}>
                   <input autoComplete="address-level2" {...input("city")} />
                 </Field>
-                <Field label="State" error={errors.state}>
+                <Field label="County / Region" error={errors.state}>
                   <select
                     autoComplete="address-level1"
                     {...input("state")}
@@ -276,16 +276,16 @@ export default function CheckoutView() {
                       input("state").onChange();
                     }}
                   >
-                    <option value="">Select your state</option>
+                    <option value="">Select your county / region</option>
                     {states.map((s) => (
                       <option key={s}>{s}</option>
                     ))}
                   </select>
                 </Field>
-                <Field label="ZIP code" error={errors.zip}>
+                <Field label="Postcode" error={errors.zip}>
                   <input
                     autoComplete="postal-code"
-                    inputMode="numeric"
+                    placeholder="e.g. SW1A 1AA"
                     {...input("zip")}
                   />
                 </Field>
