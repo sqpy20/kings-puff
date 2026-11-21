@@ -7,24 +7,20 @@ import ProductCard from "./product-card";
 // pages leave out.
 const lineup = [
   {
-    id: "rainbow-crown-gummies",
-    meta: "THC Gummies · [XX] mg per piece · [count] pieces",
-    note: "21+ · Available in select states",
+    id: "momo-soda-lish",
+    meta: "Vapes · 60 ml · Raspberry, Grapefruit & Lemon",
   },
   {
-    id: "purple-reign-disposable",
-    meta: "Vapes · [X] g · [strain / flavour]",
-    note: "21+ · Available in select states",
+    id: "blue-raspberry-rings",
+    meta: "Gummies · 10 mg THC per piece · 10 pieces",
   },
   {
-    id: "golden-hour-rosin-syrup",
-    meta: "Rosin Syrup · [XX] mg THC · [XX] ml",
-    note: "21+ · Available in select states",
+    id: "og-kush-reserve",
+    meta: "Kush · 3.5 g · Indica-Dominant · 24% THC",
   },
   {
-    id: "backwood-wraps-variety",
-    meta: "Wraps · [count] per pack · [flavours]",
-    note: "21+ · Tobacco product · Available in select states",
+    id: "kuro-momo-fuji",
+    meta: "Vapes · 10 ml · 5 mg Nicotine · White Peach & Fuji Apple",
   },
 ];
 
@@ -49,8 +45,8 @@ export default function Lineup() {
         </Link>
       </div>
       <ul className="mt-7 grid grid-cols-2 gap-4 lg:mt-[51px] lg:grid-cols-4 lg:gap-5 xl:gap-[27px]">
-        {lineup.map(({ id, meta, note }) => (
-          <ProductCard key={id} product={getProduct(id)} meta={meta} note={note} />
+        {lineup.map(({ id, meta }) => (
+          <ProductCard key={id} product={getProduct(id)} meta={meta} />
         ))}
       </ul>
     </section>

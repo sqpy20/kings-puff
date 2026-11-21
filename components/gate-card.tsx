@@ -25,7 +25,7 @@ export default function GateCard({
     <main className="grid min-h-dvh place-items-center bg-[radial-gradient(circle,var(--color-pink)_0_36vmax,var(--color-teal)_36vmax_48vmax,var(--color-lime)_48vmax)] p-5">
       <div className="w-full max-w-[565px] rounded-[32px] bg-cream px-6 py-10 text-center sm:px-[60px] sm:py-[60px]">
         <p className="text-[32px] leading-none font-extrabold tracking-[-0.04em]">
-          Kings Puff
+          Momo Eliquid
           <sup className="relative -top-[1.1em] ml-px text-[8px] tracking-normal">
             ®
           </sup>

@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import Nav from "@/components/nav";
 
 export const metadata: Metadata = {
-  title: "Your bag · Kings Puff",
+  title: "Your bag · Momo Eliquid",
 };
 
 export default function CartPage() {

@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Nav from "@/components/nav";
 
 export const metadata: Metadata = {
-  title: "FAQ · Kings Puff",
+  title: "FAQ · Momo Eliquid",
 };
 
 export default function FaqPage() {

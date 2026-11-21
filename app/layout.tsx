@@ -15,7 +15,7 @@ const instrument = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "king-puff",
+  title: "Momo Eliquid",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

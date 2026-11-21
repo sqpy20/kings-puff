@@ -6,7 +6,7 @@ import GateCard, {
 } from "@/components/gate-card";
 
 export const metadata: Metadata = {
-  title: "Are you 21 or older? · Kings Puff",
+  title: "Are you 18 or older? · Momo Eliquid",
 };
 
 export default function AgeGate() {
@@ -39,7 +39,7 @@ export default function AgeGate() {
         </>
       }
     >
-      This site sells products that contain THC and tobacco. You must be of
+      This site sells products that contain THC. You must be of
       legal age in your state to enter.
     </GateCard>
   );

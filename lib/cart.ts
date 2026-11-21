@@ -2,13 +2,14 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { type Product, products } from "./catalog";
+import { states } from "./states";
 
 // The bag lives in the browser's localStorage, so it survives reloads but is
 // per-device. Components stay in sync through a custom event (same tab) and
 // the native "storage" event (other tabs).
-const CART_KEY = "kings-puff-cart";
-const STATE_KEY = "kings-puff-ship-state";
-const CHANGE_EVENT = "kings-puff-storage";
+const CART_KEY = "momo-eliquid-cart";
+const STATE_KEY = "momo-eliquid-ship-state";
+const CHANGE_EVENT = "momo-eliquid-storage";
 const MAX_QTY = 99;
 
 export type CartLine = { product: Product; qty: number };
@@ -69,13 +70,14 @@ function update(fn: (lines: StoredLine[]) => StoredLine[]) {
   writeRaw(CART_KEY, JSON.stringify(fn(parseLines(readRaw(CART_KEY)))));
 }
 
-export function addToCart(id: string) {
+export function addToCart(id: string, qty = 1) {
+  const step = Math.max(1, Math.min(Math.trunc(qty) || 1, MAX_QTY));
   update((lines) =>
     lines.some((l) => l.id === id)
       ? lines.map((l) =>
-          l.id === id ? { ...l, qty: Math.min(l.qty + 1, MAX_QTY) } : l,
+          l.id === id ? { ...l, qty: Math.min(l.qty + step, MAX_QTY) } : l,
         )
-      : [...lines, { id, qty: 1 }],
+      : [...lines, { id, qty: step }],
   );
 }
 
@@ -106,8 +108,9 @@ export function useCart() {
   };
 }
 
-/** The shipping state picked in the bag, shared with checkout. */
+/** The shipping county/region picked in the bag, shared with checkout. */
 export function useShipState(): [string, (state: string) => void] {
   const raw = useStored(STATE_KEY);
-  return [raw ?? "", (state) => writeRaw(STATE_KEY, state)];
+  const valid = raw && states.includes(raw) ? raw : "";
+  return [valid, (state) => writeRaw(STATE_KEY, state)];
 }

@@ -1,19 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
-import {
-  AccessoriesIcon,
-  ArrowIcon,
-  GummiesIcon,
-  SyrupIcon,
-  VapesIcon,
-  WrapsIcon,
-} from "./illustrations";
+import { ArrowIcon } from "./illustrations";
 
 const categories = [
-  { label: "THC Gummies", slug: "thc-gummies", Icon: GummiesIcon, color: "bg-pink" },
-  { label: "Vapes", slug: "vapes", Icon: VapesIcon, color: "bg-purple text-white" },
-  { label: "Rosin Syrup", slug: "rosin-syrup", Icon: SyrupIcon, color: "bg-orange" },
-  { label: "Backwood Wraps", slug: "backwood-wraps", Icon: WrapsIcon, color: "bg-lime" },
-  { label: "Accessories", slug: "accessories", Icon: AccessoriesIcon, color: "bg-teal" },
+  {
+    label: "Vapes",
+    slug: "vapes",
+    images: ["/vapes/image-2.jpg", "/vapes/image-1.png"],
+    color: "bg-purple text-white",
+  },
+  {
+    label: "Gummies",
+    slug: "gummies",
+    images: ["/gummies/image-2.jpeg", "/gummies/image-1.jpeg"],
+    color: "bg-pink",
+  },
+  {
+    label: "Kush",
+    slug: "kush",
+    images: ["/kush/image-2.webp", "/kush/image-1.webp"],
+    color: "bg-lime",
+  },
 ];
 
 export default function Categories() {
@@ -31,22 +38,39 @@ export default function Categories() {
           <ArrowIcon className="size-4" />
         </Link>
       </div>
-      <ul className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:mt-[50px] lg:grid-cols-5 lg:gap-5 xl:gap-7">
-        {categories.map(({ label, slug, Icon, color }) => (
+      <ul className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:mt-[50px] lg:gap-5 xl:gap-7">
+        {categories.map(({ label, slug, images, color }, index) => (
           // Sizes inside each card scale with the card's own width (cqw).
-          <li key={slug} className="@container">
+          <li key={slug} className="@container max-sm:last:col-span-2">
             <Link
               href={`/shop/${slug}`}
-              className={`flex aspect-square flex-col rounded-[clamp(20px,10.6cqw,28px)] p-[clamp(14px,9.8cqw,26px)] ${color}`}
+              className={`group flex ${index === 2 ? "aspect-[2/1] sm:aspect-square" : "aspect-square"} flex-col rounded-[clamp(20px,8cqw,28px)] p-[clamp(14px,7.5cqw,28px)] ${color}`}
             >
-              <div className="flex min-h-0 flex-1 items-start justify-center">
-                <Icon className="w-[68%]" />
+              <div className="relative flex min-h-0 flex-1 items-center justify-center">
+                <div className="absolute aspect-square h-[76%] max-w-[58%] -translate-x-[22%] translate-y-[4%] -rotate-8 overflow-hidden rounded-xl border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)] transition-transform duration-300 group-hover:-translate-x-[28%] group-hover:-rotate-12 sm:rounded-2xl sm:border-[3px] sm:shadow-[5px_5px_0_var(--color-ink)]">
+                  <Image
+                    src={images[0]}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1280px) 240px, (min-width: 640px) 180px, 100px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="absolute aspect-square h-[76%] max-w-[58%] translate-x-[22%] -translate-y-[4%] rotate-6 overflow-hidden rounded-xl border-2 border-ink bg-cream shadow-[3px_3px_0_var(--color-ink)] transition-transform duration-300 group-hover:translate-x-[28%] group-hover:rotate-10 sm:rounded-2xl sm:border-[3px] sm:shadow-[5px_5px_0_var(--color-ink)]">
+                  <Image
+                    src={images[1]}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1280px) 240px, (min-width: 640px) 180px, 100px"
+                    className="object-cover"
+                  />
+                </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[clamp(16px,9.1cqw,24px)] leading-[1.25] font-bold tracking-[-0.01em]">
+                <span className="text-[clamp(16px,7.5cqw,28px)] leading-[1.25] font-bold tracking-[-0.01em]">
                   {label}
                 </span>
-                <ArrowIcon className="size-[clamp(18px,9cqw,24px)] shrink-0" />
+                <ArrowIcon className="size-[clamp(18px,6.5cqw,26px)] shrink-0" />
               </div>
             </Link>
           </li>

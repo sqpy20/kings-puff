@@ -5,7 +5,7 @@ import Nav from "@/components/nav";
 import Story from "@/components/story";
 
 export const metadata: Metadata = {
-  title: "About · Kings Puff",
+  title: "About · Momo Eliquid",
 };
 
 export default function AboutPage() {

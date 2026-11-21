@@ -9,6 +9,8 @@ const PAGE_SIZE = 8;
 
 const sorts = {
   featured: "Featured",
+  "price-asc": "Price: Low to High",
+  "price-desc": "Price: High to Low",
   "name-asc": "Name: A to Z",
   "name-desc": "Name: Z to A",
 } as const;
@@ -30,9 +32,8 @@ function Pill({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink px-4 text-sm font-bold sm:h-[46px] sm:gap-2.5 sm:px-[22px] sm:text-base ${
-        active ? "bg-ink text-white" : ""
-      }`}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink px-4 text-sm font-bold sm:h-[46px] sm:gap-2.5 sm:px-[22px] sm:text-base ${active ? "bg-ink text-white" : ""
+        }`}
     >
       <span className={`size-3.5 rounded-full border-2 border-ink ${dot}`} />
       {children}
@@ -56,10 +57,18 @@ export default function CollectionBrowser({
   const sorted =
     sort === "featured"
       ? products
-      : [...products].sort(
-          (a, b) =>
-            a.name.localeCompare(b.name) * (sort === "name-asc" ? 1 : -1),
-        );
+      : [...products].sort((a, b) => {
+        switch (sort) {
+          case "price-asc":
+            return a.price - b.price;
+          case "price-desc":
+            return b.price - a.price;
+          case "name-asc":
+            return a.name.localeCompare(b.name);
+          case "name-desc":
+            return b.name.localeCompare(a.name);
+        }
+      });
   const shown = sorted.slice(0, visible);
   const hasMore = shown.length < sorted.length;
 
@@ -81,23 +90,6 @@ export default function CollectionBrowser({
             </Pill>
           ))}
         </nav>
-        <label className="flex shrink-0 items-center gap-3.5 font-bold">
-          Sort by
-          <select
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as Sort);
-              setVisible(PAGE_SIZE);
-            }}
-            className="h-10 w-[218px] rounded-xl border-2 border-ink bg-white px-4 font-medium sm:h-[46px] sm:px-[18px]"
-          >
-            {Object.entries(sorts).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       <ul className="mt-6 grid grid-cols-2 gap-4 lg:mt-[37px] lg:grid-cols-4 lg:gap-5 xl:gap-[26px]">
         {shown.map((p) => (
