@@ -72,13 +72,6 @@ export default function Footer() {
           <Column title="Help" items={help} />
         </div>
         <hr className="mt-11 border-white/20" />
-        <p className="mt-6.5 text-sm leading-5.5">
-          <strong>Warning:</strong> Products contain THC. For use only by adults
-          21 and older. Keep out of reach of children and pets. Do not drive or
-          operate machinery after use. Not for use if pregnant or breastfeeding.
-          Backwood wraps are tobacco products. [Add state-required warnings and
-          Farm Bill / hemp compliance statement.]
-        </p>
         <p className="mt-3.5 text-sm leading-5.5">
           © 2026 Momo Eliquid. All rights reserved. ·{" "}
           <Link href="#" className="underline underline-offset-2">

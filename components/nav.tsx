@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { navLinks } from "@/lib/nav";
 import CartLink from "./cart-link";
+import MobileNav from "./mobile-nav";
 import NavLinks, { NavLinkList } from "./nav-links";
 
 export default function Nav() {
@@ -41,43 +41,7 @@ export default function Nav() {
               </svg>
             </button>
             <CartLink />
-            {/* Mobile menu: <details> so it opens without client JS. */}
-            <details className="group md:hidden">
-              <summary
-                aria-label="Menu"
-                className="flex cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path
-                    className="group-open:hidden"
-                    d="M4 7h16M4 12h16M4 17h16"
-                  />
-                  <path
-                    className="hidden group-open:block"
-                    d="M6 6l12 12M18 6 6 18"
-                  />
-                </svg>
-              </summary>
-              <nav className="absolute inset-x-0 top-full z-20 flex flex-col border-b border-ink/10 bg-cream px-5 pt-1 pb-4 sm:px-8">
-                {navLinks.map((l) => (
-                  <Link
-                    key={l.label}
-                    href={l.href}
-                    className="border-b border-ink/10 py-3.5 text-lg font-semibold last:border-0"
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </nav>
-            </details>
+            <MobileNav />
           </div>
         </div>
       </header>
