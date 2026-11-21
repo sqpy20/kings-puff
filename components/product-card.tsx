@@ -47,10 +47,9 @@ export default function ProductCard({
   const color = getCategory(product.category)?.color ?? "pink";
   const href = `/products/${product.id}`;
   return (
-    <li className="flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">
-      <Link
-        href={href}
-        className={`group relative block aspect-square overflow-hidden ${bgClass[color]}`}
+    <li className="group relative flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">
+      <div
+        className={`relative aspect-square overflow-hidden ${bgClass[color]}`}
       >
         {product.badge && (
           <span
@@ -63,13 +62,16 @@ export default function ProductCard({
           product={product}
           className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
-      </Link>
+      </div>
       <div className="flex flex-1 flex-col px-3.5 pt-3.5 pb-4 sm:px-[18px] sm:pt-4 sm:pb-[22px]">
         <h3
           title={product.name}
           className="truncate text-[17px] leading-[1.3] font-semibold tracking-[0.01em] sm:text-[21px] sm:leading-7 lg:text-lg xl:text-[21px]"
         >
-          <Link href={href} className="underline-offset-4 hover:underline">
+          <Link
+            href={href}
+            className="underline-offset-4 group-hover:underline after:absolute after:inset-0 after:z-20"
+          >
             {product.name}
           </Link>
         </h3>
@@ -82,7 +84,7 @@ export default function ProductCard({
           </span>
           <AddToBag
             id={product.id}
-            className="h-10 rounded-[10px] bg-pink px-3.5 text-sm font-bold sm:h-[43px] sm:px-[18px] sm:text-[15.5px]"
+            className="relative z-30 h-10 rounded-[10px] bg-pink px-3.5 text-sm font-bold sm:h-[43px] sm:px-[18px] sm:text-[15.5px]"
           />
         </div>
       </div>

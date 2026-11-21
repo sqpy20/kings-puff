@@ -14,6 +14,7 @@ import { ArrowIcon } from "./illustrations";
 import Nav from "./nav";
 import ProductCard, { badgeClass } from "./product-card";
 import ProductPurchase from "./product-purchase";
+import ShareBacklink from "./share-backlink";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const category = getCategory(product.category);
@@ -137,6 +138,11 @@ export default function ProductDetail({ product }: { product: Product }) {
                 </div>
               ))}
             </dl>
+
+            <ShareBacklink
+              path={`/products/${product.id}`}
+              title={product.name}
+            />
           </div>
         </div>
 

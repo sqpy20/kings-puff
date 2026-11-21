@@ -3,21 +3,20 @@ import { categories } from "@/lib/catalog";
 
 type FooterLink = { label: string; href: string };
 
-const shop: FooterLink[] = categories.map((c) => ({
-  label: c.label,
-  href: `/shop/${c.slug}`,
-}));
-const helpHrefs: Record<string, string> = {
-  FAQ: "/faq",
-  "Contact us": "/faq#contact",
-};
+const shop: FooterLink[] = [
+  { label: "All products", href: "/shop" },
+  ...categories.map((c) => ({
+    label: c.label,
+    href: `/shop/${c.slug}`,
+  })),
+];
 const help: FooterLink[] = [
-  "FAQ",
-  "Shipping & availability",
-  "Lab results",
-  "Contact us",
-  "Instagram",
-].map((label) => ({ label, href: helpHrefs[label] ?? "#" }));
+  { label: "FAQ", href: "/faq" },
+  { label: "Shipping & availability", href: "/faq" },
+  { label: "About & quality", href: "/about" },
+  { label: "Press & Partners", href: "/press" },
+  { label: "Contact us", href: "/faq#contact" },
+];
 
 function Column({ title, items }: { title: string; items: FooterLink[] }) {
   return (

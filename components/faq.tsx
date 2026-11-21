@@ -1,25 +1,4 @@
-const faqs = [
-  {
-    q: "How old do I need to be?",
-    a: "You must be 21 or older to browse and buy. We verify your age and ID at checkout, and an adult 21+ must sign for delivery.",
-  },
-  {
-    q: "Where do you ship?",
-    a: "[Add eligible states, delivery times and shipping costs.]",
-  },
-  {
-    q: "How do I read potency and dosage?",
-    a: "[Add how potency is shown on each pack and dosage guidance.]",
-  },
-  {
-    q: "Where can I find lab results?",
-    a: "[Add where to find certificates of analysis for each batch.]",
-  },
-  {
-    q: "What is your returns policy?",
-    a: "[Add returns, refunds and damaged-order policy.]",
-  },
-];
+import { faqs } from "@/lib/faqs";
 
 export default function Faq() {
   return (

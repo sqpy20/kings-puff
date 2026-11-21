@@ -6,7 +6,8 @@ import GateCard, {
 } from "@/components/gate-card";
 
 export const metadata: Metadata = {
-  title: "Are you 18 or older? · Momo Eliquid",
+  title: "Are you 18 or older?",
+  robots: { index: false, follow: false },
 };
 
 export default function AgeGate() {
