@@ -18,7 +18,7 @@ export default function Hero() {
             </em>
           </h1>
           <p className="mt-[25px] max-w-[520px] text-[17px] leading-[31.5px]">
-            Gummies, vapes, rosin syrup and wraps in loud colours, with clear
+            Vapes, gummies and kush in loud colours, with clear
             potency and ingredient info on every pack. For adults 21+ where
             legal.
           </p>

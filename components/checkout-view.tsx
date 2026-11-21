@@ -3,14 +3,19 @@
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useCart, useShipState } from "@/lib/cart";
-import { bgClass, getCategory } from "@/lib/catalog";
+import {
+  FREE_SHIPPING_THRESHOLD,
+  bgClass,
+  formatPrice,
+  getCategory,
+} from "@/lib/catalog";
 import { states } from "@/lib/states";
 import { ArrowIcon } from "./illustrations";
 import { ProductArt } from "./product-card";
 
 const shippingOptions = [
-  { id: "express", label: "Express delivery ([X] working days)" },
-  { id: "standard", label: "Standard delivery ([X] working days)" },
+  { id: "express", label: "Express delivery (1–2 working days)", price: 5.99 },
+  { id: "standard", label: "Standard delivery (3–5 working days)", price: 3.99 },
 ];
 
 const paymentOptions = [
@@ -83,7 +88,7 @@ function RadioGroup({
   detail,
 }: {
   name: string;
-  options: { id: string; label: string }[];
+  options: { id: string; label: string; price?: string }[];
   value: string;
   onChange: (id: string) => void;
   /** Extra content shown inside the selected option. */
@@ -103,7 +108,7 @@ function RadioGroup({
               className="size-5 shrink-0 accent-ink"
             />
             <span className="flex-1 font-medium">{o.label}</span>
-            {name === "shipping" && <span>[Price]</span>}
+            {o.price && <span>{o.price}</span>}
           </label>
           {value === o.id && detail?.(o.id)}
         </div>
@@ -150,7 +155,24 @@ export default function CheckoutView() {
       }),
   });
 
-  const shippingLabel = shippingOptions.find((o) => o.id === shipping)?.label;
+  const subtotal = lines.reduce(
+    (sum, l) => sum + l.product.price * l.qty,
+    0,
+  );
+  const resolvedShipping = shippingOptions.map((o) => {
+    const amount =
+      o.id === "standard" && subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : o.price;
+    return {
+      ...o,
+      amount,
+      price: amount === 0 ? "Free" : formatPrice(amount),
+    };
+  });
+  const activeShipping =
+    resolvedShipping.find((o) => o.id === shipping) ?? resolvedShipping[0];
+  const shippingCost = activeShipping.amount;
+  const total = subtotal + shippingCost;
+  const shippingLabel = activeShipping.label;
 
   return (
     <main className="shell pt-8 pb-16 lg:pt-[30px] lg:pb-24">
@@ -291,7 +313,7 @@ export default function CheckoutView() {
               <SectionTitle>Shipping options</SectionTitle>
               <RadioGroup
                 name="shipping"
-                options={shippingOptions}
+                options={resolvedShipping}
                 value={shipping}
                 onChange={setShipping}
               />
@@ -381,11 +403,13 @@ export default function CheckoutView() {
             <ul className="mt-6 space-y-5">
               {lines.map(({ product, qty }) => (
                 <li key={product.id} className="flex gap-4">
-                  <div
-                    className={`relative grid aspect-[138/173] w-[60px] shrink-0 place-items-center self-start rounded-[10px] ${bgClass[getCategory(product.category)?.color ?? "pink"]}`}
-                  >
-                    <ProductArt product={product} />
-                    <span className="absolute -top-2 -right-2 grid h-6 min-w-6 place-items-center rounded-full bg-ink px-1.5 text-xs font-bold text-white">
+                  <div className="relative size-[60px] shrink-0 self-start">
+                    <div
+                      className={`relative size-full overflow-hidden rounded-[10px] ${bgClass[getCategory(product.category)?.color ?? "pink"]}`}
+                    >
+                      <ProductArt product={product} sizes="60px" />
+                    </div>
+                    <span className="absolute -top-2 -right-2 z-10 grid h-6 min-w-6 place-items-center rounded-full bg-ink px-1.5 text-xs font-bold text-white">
                       {qty}
                     </span>
                   </div>
@@ -395,7 +419,9 @@ export default function CheckoutView() {
                       {product.meta}
                     </p>
                   </div>
-                  <span className="shrink-0 font-medium">[Price]</span>
+                  <span className="shrink-0 font-medium">
+                    {formatPrice(product.price * qty)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -439,7 +465,7 @@ export default function CheckoutView() {
                 <dt>
                   Subtotal ({count} {count === 1 ? "item" : "items"})
                 </dt>
-                <dd className="font-bold">[Subtotal]</dd>
+                <dd className="font-bold">{formatPrice(subtotal)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt>
@@ -448,11 +474,11 @@ export default function CheckoutView() {
                     {shippingLabel}
                   </span>
                 </dt>
-                <dd>[Price]</dd>
+                <dd>{shippingCost === 0 ? "Free" : formatPrice(shippingCost)}</dd>
               </div>
               <div className="flex justify-between gap-4 border-t border-ink/15 pt-5 text-[22px] leading-7 font-bold">
                 <dt>Total</dt>
-                <dd>[Total]</dd>
+                <dd>{formatPrice(total)}</dd>
               </div>
             </dl>
           </aside>

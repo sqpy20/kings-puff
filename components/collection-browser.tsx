@@ -9,6 +9,8 @@ const PAGE_SIZE = 8;
 
 const sorts = {
   featured: "Featured",
+  "price-asc": "Price: Low to High",
+  "price-desc": "Price: High to Low",
   "name-asc": "Name: A to Z",
   "name-desc": "Name: Z to A",
 } as const;
@@ -56,10 +58,18 @@ export default function CollectionBrowser({
   const sorted =
     sort === "featured"
       ? products
-      : [...products].sort(
-          (a, b) =>
-            a.name.localeCompare(b.name) * (sort === "name-asc" ? 1 : -1),
-        );
+      : [...products].sort((a, b) => {
+          switch (sort) {
+            case "price-asc":
+              return a.price - b.price;
+            case "price-desc":
+              return b.price - a.price;
+            case "name-asc":
+              return a.name.localeCompare(b.name);
+            case "name-desc":
+              return b.name.localeCompare(a.name);
+          }
+        });
   const shown = sorted.slice(0, visible);
   const hasMore = shown.length < sorted.length;
 

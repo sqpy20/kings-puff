@@ -10,10 +10,10 @@ export default function Bundle() {
             Bundle &amp; save
           </p>
           <h2 className="mt-3 text-[26px] leading-[1.25] font-extrabold tracking-[-0.02em] sm:text-[30px]">
-            Build a Royal Box: pick any 3, save [X]%.
+            Build a Royal Box: pick any 3, save 15%.
           </h2>
           <p className="mt-3 text-[17px] leading-7">
-            Mix gummies, syrup and wraps. Offer valid where legal, while stock
+            Mix vapes, gummies and kush. Offer valid where legal, while stock
             lasts.
           </p>
         </div>

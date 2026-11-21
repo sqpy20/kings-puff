@@ -62,20 +62,19 @@ export function HeroArt(props: Props) {
       <circle cx="393" cy="393" r="214" fill={PURPLE} />
       <circle cx="393" cy="393" r="155" fill={CREAM} />
       <g stroke={INK} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
-        {/* syrup bottle */}
-        <g transform="rotate(-8 384 365)">
-          <rect x="352" y="172" width="64" height="50" rx="10" fill={INK} />
-          <rect x="363" y="216" width="42" height="36" fill={CREAM} />
-          <rect x="309" y="247" width="150" height="236" rx="30" fill={PINK} />
-          <rect x="331" y="318" width="106" height="84" rx="10" fill={CREAM} />
-          <path d="M351 362q11-15 22 0t22 0 22 0" />
+        {/* left vape */}
+        <g transform="rotate(-14 335 360)">
+          <rect x="304" y="201" width="62" height="56" rx="12" fill={INK} />
+          <rect x="297" y="247" width="76" height="232" rx="38" fill={TEAL} />
+          <rect x="320" y="279" width="30" height="80" rx="15" fill={LIME} />
+          <circle cx="335" cy="431" r="10" fill={CREAM} />
         </g>
-        {/* vape */}
-        <g transform="rotate(14 495 375)">
-          <rect x="464" y="216" width="62" height="56" rx="12" fill={INK} />
-          <rect x="457" y="262" width="76" height="232" rx="38" fill={PINK} />
-          <rect x="480" y="294" width="30" height="80" rx="15" fill={LIME} />
-          <circle cx="495" cy="446" r="10" fill={CREAM} />
+        {/* right vape */}
+        <g transform="rotate(14 465 370)">
+          <rect x="434" y="211" width="62" height="56" rx="12" fill={INK} />
+          <rect x="427" y="257" width="76" height="232" rx="38" fill={PINK} />
+          <rect x="450" y="289" width="30" height="80" rx="15" fill={LIME} />
+          <circle cx="465" cy="441" r="10" fill={CREAM} />
         </g>
         <Gummy x={235} y={532} rotate={-15} fill={LIME} />
         <Gummy x={485} y={545} rotate={-5} fill={PURPLE} />
@@ -147,78 +146,22 @@ export function VapesIcon(props: Props) {
   );
 }
 
-export function SyrupIcon({
-  body = "lime",
+export function KushIcon({
+  body = "purple",
   ...props
 }: Props & { body?: ColorName }) {
   return (
     <Icon {...props}>
-      <rect x="65" y="4" width="30" height="22" rx="6" fill={INK} />
-      <rect x="70" y="24" width="20" height="16" fill={CREAM} />
-      <rect x="42" y="38" width="76" height="98" rx="14" fill={COLORS[body]} />
-      <rect x="52" y="70" width="56" height="40" rx="8" fill={CREAM} />
-      <path d="M62 91q6-9 12 0t12 0 12 0" />
-    </Icon>
-  );
-}
-
-export function WrapsIcon({
-  box = "purple",
-  ...props
-}: Props & { box?: ColorName }) {
-  return (
-    <Icon {...props}>
-      <g transform="rotate(-4 86 70)">
-        <rect x="32" y="14" width="108" height="76" rx="8" fill={COLORS[box]} />
-        <path d="M52 54q11-13 22 0t22 0 22 0" stroke="#fff" />
-        <rect x="14" y="94" width="142" height="30" rx="15" fill={ORANGE} />
-        <path d="M50 96v26M85 96v26M120 96v26" />
-      </g>
-    </Icon>
-  );
-}
-
-export function AccessoriesIcon({
-  ring = "pink",
-  ...props
-}: Props & { ring?: ColorName }) {
-  return (
-    <Icon {...props}>
-      <circle cx="56" cy="74" r="46" fill={COLORS[ring]} />
-      <circle cx="56" cy="74" r="27" fill={CREAM} />
-      <circle cx="56" cy="74" r="9" fill={INK} />
-      <rect x="116" y="20" width="30" height="26" rx="6" fill={INK} />
-      <rect x="113" y="42" width="36" height="80" rx="8" fill={LIME} />
-    </Icon>
-  );
-}
-
-export function JarIcon({
-  gummies = ["lime", "purple", "orange"],
-  ...props
-}: Props & { gummies?: ColorName[] }) {
-  return (
-    <Icon viewBox="0 0 160 196" {...props}>
-      <rect x="8" y="24" width="144" height="166" rx="22" fill={CREAM} />
-      <rect x="6" y="6" width="148" height="42" rx="18" fill={INK} />
-      <rect x="26" y="78" width="48" height="48" rx="13" fill={COLORS[gummies[0]]} transform="rotate(-8 50 102)" />
-      <rect x="86" y="90" width="48" height="48" rx="13" fill={COLORS[gummies[1]]} transform="rotate(6 110 114)" />
-      <rect x="54" y="128" width="50" height="46" rx="13" fill={COLORS[gummies[2]]} />
-    </Icon>
-  );
-}
-
-export function VapeIcon({
-  body = "teal",
-  ...props
-}: Props & { body?: ColorName }) {
-  return (
-    <Icon viewBox="0 0 110 224" {...props}>
-      <g transform="rotate(12 55 112)">
-        <rect x="36" y="6" width="40" height="38" rx="10" fill={INK} />
-        <rect x="28" y="34" width="56" height="180" rx="28" fill={COLORS[body]} />
-        <rect x="43" y="60" width="26" height="64" rx="13" fill={body === "lime" ? CREAM : LIME} />
-        <circle cx="56" cy="174" r="8" fill={CREAM} />
+      <g transform="rotate(-4 80 70)">
+        <rect x="30" y="10" width="100" height="120" rx="18" fill={COLORS[body]} />
+        <path d="M32 34h96" />
+        <rect x="46" y="48" width="68" height="62" rx="14" fill={CREAM} />
+        <path
+          d="M80 56 C86 66 86 78 80 88 C74 78 74 66 80 56 Z M61 65 C71 68 77 77 80 88 C69 84 63 75 61 65 Z M99 65 C89 68 83 77 80 88 C91 84 97 75 99 65 Z M55 83 C64 81 73 83 80 89 C71 93 62 90 55 83 Z M105 83 C96 81 87 83 80 89 C89 93 98 90 105 83 Z"
+          fill={body === "lime" ? TEAL : LIME}
+          strokeWidth="4"
+        />
+        <path d="M80 89v11" strokeWidth="4" />
       </g>
     </Icon>
   );

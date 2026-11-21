@@ -3,7 +3,7 @@
 export const navLinks = [
   { href: "/shop", label: "Shop", match: (p: string) => p === "/shop" },
   {
-    href: "/shop/thc-gummies",
+    href: "/shop/vapes",
     label: "Collections",
     match: (p: string) => p.startsWith("/shop/"),
   },

@@ -9,14 +9,21 @@ import {
   useCart,
   useShipState,
 } from "@/lib/cart";
-import { bgClass, getCategory, productTag, products } from "@/lib/catalog";
+import {
+  FREE_SHIPPING_THRESHOLD,
+  bgClass,
+  formatPrice,
+  getCategory,
+  productTag,
+  products,
+} from "@/lib/catalog";
 import { states } from "@/lib/states";
 import AddToBag from "./add-to-bag";
 import { ArrowIcon, GummiesIcon } from "./illustrations";
 import { ProductArt } from "./product-card";
 
 // Shown under the bag, in this order, skipping anything already in it.
-const SUGGESTED = ["purple-reign-disposable", "crown-grinder", "sour-sunburst-bites"];
+const SUGGESTED = ["momo-soda-lish", "wild-berry-bites", "og-kush-reserve"];
 
 function Line({ product, qty }: CartLine) {
   const color = getCategory(product.category)?.color ?? "pink";
@@ -26,9 +33,12 @@ function Line({ product, qty }: CartLine) {
   return (
     <li className="flex gap-4 rounded-3xl bg-white p-3.5 sm:gap-[27px] sm:p-[17px]">
       <div
-        className={`grid aspect-[138/173] w-[92px] shrink-0 place-items-center self-start rounded-[14px] sm:w-[138px] ${bgClass[color]}`}
+        className={`relative aspect-square w-[92px] shrink-0 overflow-hidden self-start rounded-[14px] sm:w-[138px] ${bgClass[color]}`}
       >
-        <ProductArt product={product} />
+        <ProductArt
+          product={product}
+          sizes="(min-width: 640px) 138px, 92px"
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col sm:pt-[3px]">
         <div className="flex items-start justify-between gap-3">
@@ -36,7 +46,7 @@ function Line({ product, qty }: CartLine) {
             {product.name}
           </h2>
           <span className="shrink-0 text-[17px] leading-[1.3] font-medium sm:text-[21px]">
-            [Price]
+            {formatPrice(product.price * qty)}
           </span>
         </div>
         <p className="mt-1 text-[13px] leading-[22px] text-[#666] sm:text-sm">
@@ -83,7 +93,7 @@ function Line({ product, qty }: CartLine) {
   );
 }
 
-function Summary({ count }: { count: number }) {
+function Summary({ count, subtotal }: { count: number; subtotal: number }) {
   const [state, setState] = useShipState();
   const [confirmed, setConfirmed] = useState(false);
   const [promoTried, setPromoTried] = useState(false);
@@ -143,19 +153,23 @@ function Summary({ count }: { count: number }) {
           <dt>
             Subtotal ({count} {count === 1 ? "item" : "items"})
           </dt>
-          <dd className="font-bold">[Subtotal]</dd>
+          <dd className="font-bold">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt>Shipping</dt>
-          <dd>Calculated at checkout</dd>
+          <dd>
+            {subtotal >= FREE_SHIPPING_THRESHOLD
+              ? "Free"
+              : "Calculated at checkout"}
+          </dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt>Estimated taxes</dt>
-          <dd>[Excise + sales tax]</dd>
+          <dd>Included</dd>
         </div>
         <div className="flex justify-between gap-4 border-t border-ink/15 pt-5 text-[22px] leading-7 font-bold">
           <dt>Total</dt>
-          <dd>[Total]</dd>
+          <dd>{formatPrice(subtotal)}</dd>
         </div>
       </dl>
       <label className="mt-7 flex gap-3 text-[15px] leading-[23px]">
@@ -185,8 +199,8 @@ function Summary({ count }: { count: number }) {
         </Link>
       )}
       <p className="mt-6 text-center text-[13.5px] leading-[21px]">
-        Secure checkout · ID verification by [verification provider] ·
-        [Accepted payment methods]
+        Secure checkout · Age verification on delivery · Crypto, gift cards
+        &amp; bank transfer
       </p>
     </aside>
   );
@@ -240,14 +254,16 @@ function Suggestions({ lines }: { lines: CartLine[] }) {
             className="flex items-center gap-[18px] rounded-[22px] bg-white p-[13px]"
           >
             <div
-              className={`size-[104px] shrink-0 rounded-[14px] ${bgClass[getCategory(p.category)?.color ?? "pink"]}`}
-            />
+              className={`relative size-[104px] shrink-0 overflow-hidden rounded-[14px] ${bgClass[getCategory(p.category)?.color ?? "pink"]}`}
+            >
+              <ProductArt product={p} sizes="104px" />
+            </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-[19px] leading-6 font-semibold tracking-[0.01em]">
                 {p.name}
               </h3>
               <div className="mt-2 flex items-center justify-between gap-2">
-                <span>[Price]</span>
+                <span>{formatPrice(p.price)}</span>
                 <AddToBag
                   id={p.id}
                   label="Add"
@@ -264,6 +280,11 @@ function Suggestions({ lines }: { lines: CartLine[] }) {
 
 export default function CartView() {
   const { ready, lines, count } = useCart();
+  const subtotal = lines.reduce(
+    (sum, l) => sum + l.product.price * l.qty,
+    0,
+  );
+  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
 
   return (
     <main className="shell pt-8 pb-16 lg:pt-[30px] lg:pb-24">
@@ -298,7 +319,9 @@ export default function CartView() {
             </ul>
             <div className="mt-[18px] flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-[22px] bg-lime px-[26px] py-[19px] leading-6">
               <p className="font-semibold">
-                Add [amount] more for free shipping.
+                {remaining > 0
+                  ? `Add ${formatPrice(remaining)} more for free standard shipping.`
+                  : "You've unlocked free standard shipping!"}
               </p>
               <Link
                 href="/shop"
@@ -309,7 +332,7 @@ export default function CartView() {
               </Link>
             </div>
           </div>
-          <Summary count={count} />
+          <Summary count={count} subtotal={subtotal} />
         </div>
       )}
       {ready && <Suggestions lines={lines} />}

@@ -1,11 +1,6 @@
 import type { ColorName } from "@/components/illustrations";
 
-export type CategorySlug =
-  | "thc-gummies"
-  | "vapes"
-  | "rosin-syrup"
-  | "backwood-wraps"
-  | "accessories";
+export type CategorySlug = "vapes" | "gummies" | "kush";
 
 export type Category = {
   slug: CategorySlug;
@@ -24,21 +19,18 @@ export type Product = {
   name: string;
   category: CategorySlug;
   meta: string;
-  note: string;
+  price: number;
+  image: string;
   badge?: Badge;
-  /** Colours for the illustration; meaning depends on the category. */
-  palette: ColorName[];
 };
 
+export const FREE_SHIPPING_THRESHOLD = 50;
+
+export function formatPrice(amount: number): string {
+  return `£${amount.toFixed(2)}`;
+}
+
 export const categories: Category[] = [
-  {
-    slug: "thc-gummies",
-    label: "THC Gummies",
-    short: "Gummies",
-    description:
-      "Chewy, fruity and clearly dosed. Every pack lists THC per piece and per pack.",
-    color: "pink",
-  },
   {
     slug: "vapes",
     label: "Vapes",
@@ -48,63 +40,105 @@ export const categories: Category[] = [
     color: "purple",
   },
   {
-    slug: "rosin-syrup",
-    label: "Rosin Syrup",
-    short: "Rosin Syrup",
+    slug: "gummies",
+    label: "Gummies",
+    short: "Gummies",
     description:
-      "Rich rosin syrup in bold flavours, with THC per serving and per bottle on every label.",
-    color: "orange",
+      "Chewy, fruity and clearly dosed. Every pack lists THC per piece and per pack.",
+    color: "pink",
   },
   {
-    slug: "backwood-wraps",
-    label: "Backwood Wraps",
-    short: "Backwood Wraps",
+    slug: "kush",
+    label: "Kush",
+    short: "Kush",
     description:
-      "Slow-burning wraps in classic and flavoured packs. Tobacco product.",
+      "Aromatic, top-shelf flower in bold packs. Every pouch lists strain, potency and weight.",
     color: "lime",
-  },
-  {
-    slug: "accessories",
-    label: "Accessories",
-    short: "Accessories",
-    description:
-      "The extras that complete the ritual, in colours as loud as the rest of the lineup.",
-    color: "teal",
   },
 ];
 
-const THC_NOTE = "21+ · Contains THC · Available in select states";
-const TOBACCO_NOTE = "21+ · Tobacco product · Available in select states";
-const PLAIN_NOTE = "21+ · Available in select states";
-
-const GUMMY_META = "[XX] mg THC per piece · [count] pieces";
-const VAPE_META = "[X] g · [strain / flavour]";
-const SYRUP_META = "[XX] mg THC · [XX] ml";
-const WRAP_META = "[count] per pack · [flavours]";
-const ACCESSORY_META = "[material] · [size]";
-
-// Placeholder catalogue: names, specs and prices are stand-ins until real
-// product data is connected.
 export const products: Product[] = [
-  { id: "rainbow-crown-gummies", name: "Rainbow Crown Gummies", category: "thc-gummies", meta: GUMMY_META, note: THC_NOTE, badge: "New arrival", palette: ["lime", "purple", "orange"] },
-  { id: "sour-sunburst-bites", name: "Sour Sunburst Bites", category: "thc-gummies", meta: GUMMY_META, note: THC_NOTE, badge: "Featured", palette: ["orange", "lime", "teal"] },
-  { id: "mango-tie-dye-chews", name: "Mango Tie-Dye Chews", category: "thc-gummies", meta: GUMMY_META, note: THC_NOTE, palette: ["teal", "orange", "purple"] },
-  { id: "berry-royale-gummies", name: "Berry Royale Gummies", category: "thc-gummies", meta: GUMMY_META, note: THC_NOTE, badge: "Limited stock", palette: ["purple", "pink", "lime"] },
-
-  { id: "purple-reign-disposable", name: "Purple Reign Disposable", category: "vapes", meta: VAPE_META, note: THC_NOTE, badge: "Featured", palette: ["teal"] },
-  { id: "pink-crown-disposable", name: "Pink Crown Disposable", category: "vapes", meta: VAPE_META, note: THC_NOTE, badge: "New arrival", palette: ["pink"] },
-  { id: "electric-lime-disposable", name: "Electric Lime Disposable", category: "vapes", meta: VAPE_META, note: THC_NOTE, palette: ["lime"] },
-
-  { id: "golden-hour-rosin-syrup", name: "Golden Hour Rosin Syrup", category: "rosin-syrup", meta: SYRUP_META, note: THC_NOTE, badge: "Limited stock", palette: ["pink"] },
-  { id: "berry-bliss-rosin-syrup", name: "Berry Bliss Rosin Syrup", category: "rosin-syrup", meta: SYRUP_META, note: THC_NOTE, palette: ["purple"] },
-  { id: "citrus-crown-rosin-syrup", name: "Citrus Crown Rosin Syrup", category: "rosin-syrup", meta: SYRUP_META, note: THC_NOTE, badge: "New arrival", palette: ["lime"] },
-
-  { id: "backwood-wraps-variety", name: "Backwood Wraps — Variety", category: "backwood-wraps", meta: WRAP_META, note: TOBACCO_NOTE, badge: "Available", palette: ["purple"] },
-  { id: "backwood-wraps-honey", name: "Backwood Wraps — Honey", category: "backwood-wraps", meta: WRAP_META, note: TOBACCO_NOTE, palette: ["pink"] },
-
-  { id: "crown-grinder", name: "Crown Grinder", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, badge: "Featured", palette: ["pink"] },
-  { id: "crown-rolling-tray", name: "Crown Rolling Tray", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["purple"] },
-  { id: "momo-eliquid-battery", name: "Momo Eliquid Battery", category: "accessories", meta: ACCESSORY_META, note: PLAIN_NOTE, palette: ["orange"] },
+  {
+    id: "momo-soda-lish",
+    name: "Momo Soda-lish",
+    category: "vapes",
+    meta: "60 ml · Raspberry, Grapefruit & Lemon",
+    price: 14.99,
+    image: "/vapes/image-1.png",
+    badge: "Featured",
+  },
+  {
+    id: "kuro-momo-fuji",
+    name: "Kuro Momo Fuji",
+    category: "vapes",
+    meta: "10 ml · 5 mg Nicotine · White Peach & Fuji Apple",
+    price: 4.99,
+    image: "/vapes/image-2.jpg",
+    badge: "New arrival",
+  },
+  {
+    id: "momo-expod-pro-cola-gummy",
+    name: "Momo ExPod Pro — Cola Gummy",
+    category: "vapes",
+    meta: "2 ml Prefilled Pod · 20 mg/ml Nicotine",
+    price: 6.99,
+    image: "/vapes/image-3.jpeg",
+    badge: "Available",
+  },
+  {
+    id: "blue-raspberry-rings",
+    name: "Blue Raspberry Rings",
+    category: "gummies",
+    meta: "10 mg THC per piece · 10 pieces (100 mg)",
+    price: 22.0,
+    image: "/gummies/image-1.jpeg",
+    badge: "New arrival",
+  },
+  {
+    id: "wild-berry-bites",
+    name: "Wild Berry Bites",
+    category: "gummies",
+    meta: "10 mg THC per piece · 10 pieces (100 mg)",
+    price: 22.0,
+    image: "/gummies/image-2.jpeg",
+    badge: "Featured",
+  },
+  {
+    id: "sour-apple-cubes",
+    name: "Sour Apple Cubes",
+    category: "gummies",
+    meta: "15 mg THC per piece · 10 pieces (150 mg)",
+    price: 26.0,
+    image: "/gummies/image-3.webp",
+    badge: "Limited stock",
+  },
+  {
+    id: "og-kush-reserve",
+    name: "OG Kush Reserve",
+    category: "kush",
+    meta: "3.5 g · Indica-Dominant · 24% THC",
+    price: 35.0,
+    image: "/kush/image-1.webp",
+    badge: "Featured",
+  },
+  {
+    id: "purple-kush",
+    name: "Purple Kush",
+    category: "kush",
+    meta: "3.5 g · Indica · 26% THC",
+    price: 38.0,
+    image: "/kush/image-2.webp",
+    badge: "New arrival",
+  },
+  {
+    id: "lemon-kush",
+    name: "Lemon Kush",
+    category: "kush",
+    meta: "7 g · Hybrid · 22% THC",
+    price: 60.0,
+    image: "/kush/image-3.webp",
+    badge: "Limited stock",
+  },
 ];
 
 export function getCategory(slug: string): Category | undefined {
@@ -130,12 +164,8 @@ export const bgClass: Record<ColorName, string> = {
 
 /** Short compliance tag shown on bag and checkout lines. */
 export function productTag(product: Product): { label: string; className: string } {
-  switch (product.category) {
-    case "backwood-wraps":
-      return { label: "Tobacco · 21+", className: "bg-sand" };
-    case "accessories":
-      return { label: "21+", className: "bg-sand" };
-    default:
-      return { label: "Contains THC · 21+", className: "bg-lime" };
+  if (product.category === "vapes") {
+    return { label: "E-Liquid · 18+", className: "bg-sand" };
   }
+  return { label: "Contains THC · 18+", className: "bg-lime" };
 }
