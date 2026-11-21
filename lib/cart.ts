@@ -70,13 +70,14 @@ function update(fn: (lines: StoredLine[]) => StoredLine[]) {
   writeRaw(CART_KEY, JSON.stringify(fn(parseLines(readRaw(CART_KEY)))));
 }
 
-export function addToCart(id: string) {
+export function addToCart(id: string, qty = 1) {
+  const step = Math.max(1, Math.min(Math.trunc(qty) || 1, MAX_QTY));
   update((lines) =>
     lines.some((l) => l.id === id)
       ? lines.map((l) =>
-          l.id === id ? { ...l, qty: Math.min(l.qty + 1, MAX_QTY) } : l,
+          l.id === id ? { ...l, qty: Math.min(l.qty + step, MAX_QTY) } : l,
         )
-      : [...lines, { id, qty: 1 }],
+      : [...lines, { id, qty: step }],
   );
 }
 

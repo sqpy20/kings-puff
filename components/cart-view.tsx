@@ -32,18 +32,24 @@ function Line({ product, qty }: CartLine) {
     "grid h-full w-10 cursor-pointer place-items-center text-xl font-bold disabled:cursor-default disabled:opacity-30 sm:w-11";
   return (
     <li className="flex gap-4 rounded-3xl bg-white p-3.5 sm:gap-[27px] sm:p-[17px]">
-      <div
-        className={`relative aspect-square w-[92px] shrink-0 overflow-hidden self-start rounded-[14px] sm:w-[138px] ${bgClass[color]}`}
+      <Link
+        href={`/products/${product.id}`}
+        className={`relative block aspect-square w-[92px] shrink-0 overflow-hidden self-start rounded-[14px] sm:w-[138px] ${bgClass[color]}`}
       >
         <ProductArt
           product={product}
           sizes="(min-width: 640px) 138px, 92px"
         />
-      </div>
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col sm:pt-[3px]">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-[17px] leading-[1.3] font-semibold tracking-[0.01em] sm:text-[21px]">
-            {product.name}
+            <Link
+              href={`/products/${product.id}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {product.name}
+            </Link>
           </h2>
           <span className="shrink-0 text-[17px] leading-[1.3] font-medium sm:text-[21px]">
             {formatPrice(product.price * qty)}
@@ -253,14 +259,20 @@ function Suggestions({ lines }: { lines: CartLine[] }) {
             key={p.id}
             className="flex items-center gap-[18px] rounded-[22px] bg-white p-[13px]"
           >
-            <div
-              className={`relative size-[104px] shrink-0 overflow-hidden rounded-[14px] ${bgClass[getCategory(p.category)?.color ?? "pink"]}`}
+            <Link
+              href={`/products/${p.id}`}
+              className={`relative block size-[104px] shrink-0 overflow-hidden rounded-[14px] ${bgClass[getCategory(p.category)?.color ?? "pink"]}`}
             >
               <ProductArt product={p} sizes="104px" />
-            </div>
+            </Link>
             <div className="min-w-0 flex-1">
               <h3 className="text-[19px] leading-6 font-semibold tracking-[0.01em]">
-                {p.name}
+                <Link
+                  href={`/products/${p.id}`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {p.name}
+                </Link>
               </h3>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <span>{formatPrice(p.price)}</span>

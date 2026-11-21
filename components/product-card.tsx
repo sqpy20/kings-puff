@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   type Badge,
   type Product,
@@ -8,7 +9,7 @@ import {
 } from "@/lib/catalog";
 import AddToBag from "./add-to-bag";
 
-const badgeClass: Record<Badge, string> = {
+export const badgeClass: Record<Badge, string> = {
   "New arrival": "bg-lime",
   Featured: "bg-ink text-white",
   "Limited stock": "bg-cream",
@@ -18,9 +19,11 @@ const badgeClass: Record<Badge, string> = {
 export function ProductArt({
   product,
   sizes = "(min-width: 1024px) 25vw, 50vw",
+  className = "object-cover",
 }: {
   product: Product;
   sizes?: string;
+  className?: string;
 }) {
   return (
     <Image
@@ -28,7 +31,7 @@ export function ProductArt({
       alt={product.name}
       fill
       sizes={sizes}
-      className="object-cover"
+      className={className}
     />
   );
 }
@@ -42,10 +45,12 @@ export default function ProductCard({
   meta?: string;
 }) {
   const color = getCategory(product.category)?.color ?? "pink";
+  const href = `/products/${product.id}`;
   return (
     <li className="flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">
-      <div
-        className={`relative aspect-square overflow-hidden ${bgClass[color]}`}
+      <Link
+        href={href}
+        className={`group relative block aspect-square overflow-hidden ${bgClass[color]}`}
       >
         {product.badge && (
           <span
@@ -54,14 +59,19 @@ export default function ProductCard({
             {product.badge}
           </span>
         )}
-        <ProductArt product={product} />
-      </div>
+        <ProductArt
+          product={product}
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </Link>
       <div className="flex flex-1 flex-col px-3.5 pt-3.5 pb-4 sm:px-[18px] sm:pt-4 sm:pb-[22px]">
         <h3
           title={product.name}
           className="truncate text-[17px] leading-[1.3] font-semibold tracking-[0.01em] sm:text-[21px] sm:leading-7 lg:text-lg xl:text-[21px]"
         >
-          {product.name}
+          <Link href={href} className="underline-offset-4 hover:underline">
+            {product.name}
+          </Link>
         </h3>
         <p className="mt-[7px] line-clamp-3 text-[13px] leading-[22px] text-[#666] sm:text-sm sm:leading-[22px]">
           {meta}

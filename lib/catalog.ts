@@ -19,6 +19,8 @@ export type Product = {
   name: string;
   category: CategorySlug;
   meta: string;
+  description: string;
+  details: { label: string; value: string }[];
   price: number;
   image: string;
   badge?: Badge;
@@ -63,6 +65,14 @@ export const products: Product[] = [
     name: "Momo Soda-lish",
     category: "vapes",
     meta: "60 ml · Raspberry, Grapefruit & Lemon",
+    description:
+      "Our iconic fruity soda shortfill blending tart raspberry, zesty pink grapefruit, and crisp lemon over a sparkling finish. Crafted in a 60 ml bottle for bold all-day flavour.",
+    details: [
+      { label: "Volume", value: "60 ml" },
+      { label: "Nicotine", value: "0 mg (Shortfill)" },
+      { label: "Flavour", value: "Raspberry, Grapefruit & Lemon" },
+      { label: "Format", value: "Dropper Bottle" },
+    ],
     price: 14.99,
     image: "/vapes/image-1.png",
     badge: "Featured",
@@ -72,6 +82,14 @@ export const products: Product[] = [
     name: "Kuro Momo Fuji",
     category: "vapes",
     meta: "10 ml · 5 mg Nicotine · White Peach & Fuji Apple",
+    description:
+      "UK-made nicotine salt e-liquid pairing juicy Japanese white peach and crisp Fuji apple with aromatic shiso leaf and a refreshing crushed-ice exhale.",
+    details: [
+      { label: "Volume", value: "10 ml" },
+      { label: "Nicotine", value: "5 mg Nic Salt" },
+      { label: "Flavour", value: "White Peach, Fuji Apple & Shiso" },
+      { label: "Origin", value: "UK Made" },
+    ],
     price: 4.99,
     image: "/vapes/image-2.jpg",
     badge: "New arrival",
@@ -81,6 +99,14 @@ export const products: Product[] = [
     name: "Momo ExPod Pro — Cola Gummy",
     category: "vapes",
     meta: "2 ml Prefilled Pod · 20 mg/ml Nicotine",
+    description:
+      "Ready-to-vape prefilled pod powered by ExPod Pro, packed with nostalgic sweet cola gummy flavour and smooth 20 mg/ml nicotine salts.",
+    details: [
+      { label: "Volume", value: "2 ml" },
+      { label: "Nicotine", value: "20 mg/ml Nic Salt" },
+      { label: "Flavour", value: "Cola Gummy" },
+      { label: "Format", value: "Prefilled Pod" },
+    ],
     price: 6.99,
     image: "/vapes/image-3.jpeg",
     badge: "Available",
@@ -90,6 +116,14 @@ export const products: Product[] = [
     name: "Blue Raspberry Rings",
     category: "gummies",
     meta: "10 mg THC per piece · 10 pieces (100 mg)",
+    description:
+      "Chewy, sugar-dusted blue raspberry gummy rings infused for consistent, clearly measured 10 mg THC dosing in every piece.",
+    details: [
+      { label: "Potency", value: "10 mg THC / piece" },
+      { label: "Pack Size", value: "10 pieces" },
+      { label: "Total THC", value: "100 mg" },
+      { label: "Flavour", value: "Blue Raspberry" },
+    ],
     price: 22.0,
     image: "/gummies/image-1.jpeg",
     badge: "New arrival",
@@ -99,6 +133,14 @@ export const products: Product[] = [
     name: "Wild Berry Bites",
     category: "gummies",
     meta: "10 mg THC per piece · 10 pieces (100 mg)",
+    description:
+      "Soft, sugar-coated red berry gummy bites bursting with ripe strawberry and raspberry notes, accurately dosed at 10 mg THC per bite.",
+    details: [
+      { label: "Potency", value: "10 mg THC / piece" },
+      { label: "Pack Size", value: "10 pieces" },
+      { label: "Total THC", value: "100 mg" },
+      { label: "Flavour", value: "Wild Berry" },
+    ],
     price: 22.0,
     image: "/gummies/image-2.jpeg",
     badge: "Featured",
@@ -108,6 +150,14 @@ export const products: Product[] = [
     name: "Sour Apple Cubes",
     category: "gummies",
     meta: "15 mg THC per piece · 10 pieces (150 mg)",
+    description:
+      "Tangy sour green apple gummy cubes with a crisp sugar coating and a stronger 15 mg THC dose per cube for experienced adults.",
+    details: [
+      { label: "Potency", value: "15 mg THC / piece" },
+      { label: "Pack Size", value: "10 pieces" },
+      { label: "Total THC", value: "150 mg" },
+      { label: "Flavour", value: "Sour Green Apple" },
+    ],
     price: 26.0,
     image: "/gummies/image-3.webp",
     badge: "Limited stock",
@@ -117,6 +167,14 @@ export const products: Product[] = [
     name: "OG Kush Reserve",
     category: "kush",
     meta: "3.5 g · Indica-Dominant · 24% THC",
+    description:
+      "Dense, frosty indica-dominant buds rich with earthy pine and citrus notes, hand-trimmed and sealed fresh in 3.5 g packs.",
+    details: [
+      { label: "Weight", value: "3.5 g" },
+      { label: "Type", value: "Indica-Dominant" },
+      { label: "Potency", value: "24% THC" },
+      { label: "Aroma", value: "Earthy Pine & Citrus" },
+    ],
     price: 35.0,
     image: "/kush/image-1.webp",
     badge: "Featured",
@@ -126,6 +184,14 @@ export const products: Product[] = [
     name: "Purple Kush",
     category: "kush",
     meta: "3.5 g · Indica · 26% THC",
+    description:
+      "Vibrant purple-hued indica flower coated in milky trichomes, delivering sweet berry and grape aromatics with 26% THC potency.",
+    details: [
+      { label: "Weight", value: "3.5 g" },
+      { label: "Type", value: "Indica" },
+      { label: "Potency", value: "26% THC" },
+      { label: "Aroma", value: "Sweet Grape & Earth" },
+    ],
     price: 38.0,
     image: "/kush/image-2.webp",
     badge: "New arrival",
@@ -135,6 +201,14 @@ export const products: Product[] = [
     name: "Lemon Kush",
     category: "kush",
     meta: "7 g · Hybrid · 22% THC",
+    description:
+      "Bright citrus-forward hybrid flower packed in a generous 7 g pouch, balancing zesty lemon aroma with smooth, uplifting effects.",
+    details: [
+      { label: "Weight", value: "7 g" },
+      { label: "Type", value: "Hybrid" },
+      { label: "Potency", value: "22% THC" },
+      { label: "Aroma", value: "Zesty Lemon & Herbal" },
+    ],
     price: 60.0,
     image: "/kush/image-3.webp",
     badge: "Limited stock",
@@ -145,8 +219,12 @@ export function getCategory(slug: string): Category | undefined {
   return categories.find((c) => c.slug === slug);
 }
 
+export function findProduct(id: string): Product | undefined {
+  return products.find((p) => p.id === id);
+}
+
 export function getProduct(id: string): Product {
-  const product = products.find((p) => p.id === id);
+  const product = findProduct(id);
   if (!product) throw new Error(`Unknown product: ${id}`);
   return product;
 }
