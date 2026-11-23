@@ -10,7 +10,7 @@ export const SITE_TAGLINE = "UK E-Liquids, Gummies & Small-Batch Kush";
 export const SITE_DESCRIPTION =
   "Shop UK-made Momo Eliquid shortfills, nic salts, ExPod Pro pods, clearly dosed THC gummies, and small-batch Kush. Order before 2PM for same-day UK dispatch.";
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://momoeliquid.co.uk"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://momoeliquidz.co.uk"
 ).replace(/\/$/, "");
 export const SITE_LOCALE = "en_GB";
 export const SITE_TWITTER = "@momoeliquid";
