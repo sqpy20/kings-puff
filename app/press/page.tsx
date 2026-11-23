@@ -5,7 +5,8 @@ import BacklinkKit from "@/components/backlink-kit";
 import Footer from "@/components/footer";
 import JsonLd from "@/components/json-ld";
 import Nav from "@/components/nav";
-import { categories, formatPrice, products } from "@/lib/catalog";
+import { formatPrice } from "@/lib/catalog";
+import { getCatalogs, getProducts } from "@/lib/catalog-data";
 import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -35,7 +36,12 @@ const assets = [
   },
 ];
 
-export default function PressPage() {
+export default async function PressPage() {
+  const [categories, products] = await Promise.all([
+    getCatalogs(),
+    getProducts(),
+  ]);
+
   return (
     <>
       <JsonLd
@@ -70,7 +76,7 @@ export default function PressPage() {
         </section>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <BacklinkKit />
+          <BacklinkKit categories={categories} products={products} />
 
           <section className="rounded-[28px] bg-white p-6 sm:p-9 lg:p-10">
             <p className="text-[11.5px] leading-4 font-bold tracking-[0.1em] uppercase">

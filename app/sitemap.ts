@@ -1,10 +1,15 @@
 import type { MetadataRoute } from "next";
-import { categories, products } from "@/lib/catalog";
+import { getCatalogs, getProducts } from "@/lib/catalog-data";
 import { absoluteUrl } from "@/lib/seo";
 
 const LAST_MODIFIED = "2026-11-21T00:00:00.000Z";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [categories, products] = await Promise.all([
+    getCatalogs(),
+    getProducts(),
+  ]);
+
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: absoluteUrl("/"),

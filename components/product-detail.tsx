@@ -1,13 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  type Category,
   FREE_SHIPPING_THRESHOLD,
   type Product,
   bgClass,
   formatPrice,
-  getCategory,
   productTag,
-  products,
 } from "@/lib/catalog";
 import Footer from "./footer";
 import { ArrowIcon } from "./illustrations";
@@ -16,16 +15,17 @@ import ProductCard, { badgeClass } from "./product-card";
 import ProductPurchase from "./product-purchase";
 import ShareBacklink from "./share-backlink";
 
-export default function ProductDetail({ product }: { product: Product }) {
-  const category = getCategory(product.category);
-  const color = category?.color ?? "pink";
+export default function ProductDetail({
+  product,
+  category,
+  related,
+}: {
+  product: Product;
+  category: Category | null;
+  related: Product[];
+}) {
+  const color = category?.color ?? product.categoryColor ?? "pink";
   const tag = productTag(product);
-  const related = [
-    ...products.filter(
-      (p) => p.category === product.category && p.id !== product.id,
-    ),
-    ...products.filter((p) => p.category !== product.category),
-  ].slice(0, 4);
 
   return (
     <>
@@ -70,6 +70,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               fill
               sizes="(min-width: 1024px) 48vw, 100vw"
               preload
+              unoptimized={product.image.startsWith("http")}
               className="object-cover"
             />
           </div>

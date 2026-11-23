@@ -8,7 +8,6 @@ import {
   FREE_SHIPPING_THRESHOLD,
   bgClass,
   formatPrice,
-  getCategory,
 } from "@/lib/catalog";
 import { states } from "@/lib/states";
 import { ArrowIcon } from "./illustrations";
@@ -429,7 +428,7 @@ export default function CheckoutView() {
                 <li key={product.id} className="flex gap-4">
                   <div className="relative size-[60px] shrink-0 self-start">
                     <div
-                      className={`relative size-full overflow-hidden rounded-[10px] ${bgClass[getCategory(product.category)?.color ?? "pink"]}`}
+                      className={`relative size-full overflow-hidden rounded-[10px] ${bgClass[product.categoryColor ?? "pink"]}`}
                     >
                       <ProductArt product={product} sizes="60px" />
                     </div>
