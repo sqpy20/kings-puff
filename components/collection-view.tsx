@@ -1,11 +1,19 @@
 import Link from "next/link";
-import { type Category, categories, products } from "@/lib/catalog";
+import type { Category, Product } from "@/lib/catalog";
 import CollectionBrowser from "./collection-browser";
 import Footer from "./footer";
 import Nav from "./nav";
 
 /** The shop page: every product, or one category when `category` is given. */
-export default function CollectionView({ category }: { category?: Category }) {
+export default function CollectionView({
+  category,
+  categories,
+  products,
+}: {
+  category?: Category;
+  categories: Category[];
+  products: Product[];
+}) {
   const list = category
     ? products.filter((p) => p.category === category.slug)
     : products;

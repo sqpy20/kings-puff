@@ -5,7 +5,6 @@ import {
   type Product,
   bgClass,
   formatPrice,
-  getCategory,
 } from "@/lib/catalog";
 import AddToBag from "./add-to-bag";
 
@@ -31,6 +30,7 @@ export function ProductArt({
       alt={product.name}
       fill
       sizes={sizes}
+      unoptimized={product.image.startsWith("http")}
       className={className}
     />
   );
@@ -44,7 +44,7 @@ export default function ProductCard({
   /** Override the catalogue text, e.g. to prefix the category name. */
   meta?: string;
 }) {
-  const color = getCategory(product.category)?.color ?? "pink";
+  const color = product.categoryColor ?? "pink";
   const href = `/products/${product.id}`;
   return (
     <li className="group relative flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">

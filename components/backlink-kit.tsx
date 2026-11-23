@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { categories, products } from "@/lib/catalog";
+import { useMemo, useRef, useState } from "react";
+import type { Category, Product } from "@/lib/catalog";
 import { SITE_NAME, buildBacklinkSnippets } from "@/lib/seo";
 
 type TargetOption = {
@@ -10,26 +10,35 @@ type TargetOption = {
   anchor: string;
 };
 
-const targets: TargetOption[] = [
-  { path: "/", label: "Homepage", anchor: `${SITE_NAME} — UK Storefront` },
-  {
-    path: "/shop",
-    label: "All Products (/shop)",
-    anchor: `Shop all ${SITE_NAME} products`,
-  },
-  ...categories.map((c) => ({
-    path: `/shop/${c.slug}`,
-    label: `Category: ${c.label}`,
-    anchor: `${c.label} at ${SITE_NAME}`,
-  })),
-  ...products.map((p) => ({
-    path: `/products/${p.id}`,
-    label: `Product: ${p.name}`,
-    anchor: `${p.name} — ${SITE_NAME}`,
-  })),
-];
+export default function BacklinkKit({
+  categories,
+  products,
+}: {
+  categories: Category[];
+  products: Product[];
+}) {
+  const targets = useMemo<TargetOption[]>(
+    () => [
+      { path: "/", label: "Homepage", anchor: `${SITE_NAME} — UK Storefront` },
+      {
+        path: "/shop",
+        label: "All Products (/shop)",
+        anchor: `Shop all ${SITE_NAME} products`,
+      },
+      ...categories.map((c) => ({
+        path: `/shop/${c.slug}`,
+        label: `Category: ${c.label}`,
+        anchor: `${c.label} at ${SITE_NAME}`,
+      })),
+      ...products.map((p) => ({
+        path: `/products/${p.id}`,
+        label: `Product: ${p.name}`,
+        anchor: `${p.name} — ${SITE_NAME}`,
+      })),
+    ],
+    [categories, products],
+  );
 
-export default function BacklinkKit() {
   const [selectedPath, setSelectedPath] = useState(targets[0].path);
   const [partnerRef, setPartnerRef] = useState("");
   const [copied, setCopied] = useState<string | null>(null);

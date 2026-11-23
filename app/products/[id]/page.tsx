@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import Footer from "@/components/footer";
 import JsonLd from "@/components/json-ld";
+import Nav from "@/components/nav";
 import ProductDetail from "@/components/product-detail";
-import { findProduct, getCategory, products } from "@/lib/catalog";
+import { getCatalogBySlug, getProductById, getProducts } from "@/lib/catalog-data";
 import {
   breadcrumbJsonLd,
   buildMetadata,
@@ -13,12 +16,15 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return products.map((p) => ({ id: p.id }));
+export async function generateStaticParams() {
+  const list = await getProducts();
+  return list.length > 0
+    ? list.map((p) => ({ id: p.id }))
+    : [{ id: "momo-soda-lish" }];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = findProduct((await params).id);
+  const product = await getProductById((await params).id);
   if (!product) {
     return buildMetadata({
       title: "Product",
@@ -42,10 +48,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function ProductPage({ params }: Props) {
-  const product = findProduct((await params).id);
+async function ProductContent({ params }: Props) {
+  const product = await getProductById((await params).id);
   if (!product) notFound();
-  const category = getCategory(product.category);
+
+  const [category, allProducts] = await Promise.all([
+    getCatalogBySlug(product.category),
+    getProducts(),
+  ]);
+
+  const related = [
+    ...allProducts.filter(
+      (p) => p.category === product.category && p.id !== product.id,
+    ),
+    ...allProducts.filter((p) => p.category !== product.category),
+  ].slice(0, 4);
+
   return (
     <>
       <JsonLd
@@ -61,7 +79,27 @@ export default async function ProductPage({ params }: Props) {
           ]),
         ]}
       />
-      <ProductDetail product={product} />
+      <ProductDetail
+        product={product}
+        category={category}
+        related={related}
+      />
     </>
+  );
+}
+
+export default function ProductPage({ params }: Props) {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <Nav />
+          <main className="shell min-h-[60vh] pt-[25px] pb-16" />
+          <Footer />
+        </>
+      }
+    >
+      <ProductContent params={params} />
+    </Suspense>
   );
 }

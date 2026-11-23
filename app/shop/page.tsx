@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import CollectionView from "@/components/collection-view";
 import JsonLd from "@/components/json-ld";
-import { products } from "@/lib/catalog";
+import { getCatalogs, getProducts } from "@/lib/catalog-data";
 import {
   breadcrumbJsonLd,
   buildMetadata,
@@ -22,7 +22,12 @@ export const metadata: Metadata = buildMetadata({
   ],
 });
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const [categories, products] = await Promise.all([
+    getCatalogs(),
+    getProducts(),
+  ]);
+
   return (
     <>
       <JsonLd
@@ -34,7 +39,7 @@ export default function ShopPage() {
           ]),
         ]}
       />
-      <CollectionView />
+      <CollectionView categories={categories} products={products} />
     </>
   );
 }

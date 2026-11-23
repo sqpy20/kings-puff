@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "@/lib/cart";
+import { useCartCount } from "@/lib/cart";
 
 /** Bag icon in the nav with the live item count. */
 export default function CartLink() {
-  const { count } = useCart();
+  const count = useCartCount();
   return (
     <Link
       href="/cart"

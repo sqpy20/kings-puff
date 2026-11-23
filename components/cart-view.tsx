@@ -11,11 +11,10 @@ import {
 } from "@/lib/cart";
 import {
   FREE_SHIPPING_THRESHOLD,
+  type Product,
   bgClass,
   formatPrice,
-  getCategory,
   productTag,
-  products,
 } from "@/lib/catalog";
 import { states } from "@/lib/states";
 import AddToBag from "./add-to-bag";
@@ -26,7 +25,7 @@ import { ProductArt } from "./product-card";
 const SUGGESTED = ["momo-soda-lish", "wild-berry-bites", "og-kush-reserve"];
 
 function Line({ product, qty }: CartLine) {
-  const color = getCategory(product.category)?.color ?? "pink";
+  const color = product.categoryColor ?? "pink";
   const tag = productTag(product);
   const step =
     "grid h-full w-10 cursor-pointer place-items-center text-xl font-bold disabled:cursor-default disabled:opacity-30 sm:w-11";
@@ -238,7 +237,13 @@ function Empty() {
   );
 }
 
-function Suggestions({ lines }: { lines: CartLine[] }) {
+function Suggestions({
+  lines,
+  products,
+}: {
+  lines: CartLine[];
+  products: Product[];
+}) {
   const inBag = new Set(lines.map((l) => l.product.id));
   const picks = [
     ...SUGGESTED.flatMap((id) => products.filter((p) => p.id === id)),
@@ -261,7 +266,7 @@ function Suggestions({ lines }: { lines: CartLine[] }) {
           >
             <Link
               href={`/products/${p.id}`}
-              className={`relative block size-[104px] shrink-0 overflow-hidden rounded-[14px] ${bgClass[getCategory(p.category)?.color ?? "pink"]}`}
+              className={`relative block size-[104px] shrink-0 overflow-hidden rounded-[14px] ${bgClass[p.categoryColor ?? "pink"]}`}
             >
               <ProductArt product={p} sizes="104px" />
             </Link>
@@ -291,7 +296,7 @@ function Suggestions({ lines }: { lines: CartLine[] }) {
 }
 
 export default function CartView() {
-  const { ready, lines, count } = useCart();
+  const { ready, lines, products, count, error } = useCart();
   const subtotal = lines.reduce(
     (sum, l) => sum + l.product.price * l.qty,
     0,
@@ -316,6 +321,11 @@ export default function CartView() {
           Keep shopping
         </Link>
       </div>
+      {error && (
+        <p role="alert" className="mt-4 rounded-xl bg-sand px-4 py-3 text-sm font-medium text-ink">
+          {error}
+        </p>
+      )}
       {!ready ? (
         // Bag not read from localStorage yet: hold the space, show nothing.
         <div className="min-h-[420px]" />
@@ -347,7 +357,7 @@ export default function CartView() {
           <Summary count={count} subtotal={subtotal} />
         </div>
       )}
-      {ready && <Suggestions lines={lines} />}
+      {ready && <Suggestions lines={lines} products={products} />}
     </main>
   );
 }

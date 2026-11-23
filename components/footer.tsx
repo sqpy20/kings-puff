@@ -1,15 +1,8 @@
 import Link from "next/link";
-import { categories } from "@/lib/catalog";
+import { getCatalogs } from "@/lib/catalog-data";
 
 type FooterLink = { label: string; href: string };
 
-const shop: FooterLink[] = [
-  { label: "All products", href: "/shop" },
-  ...categories.map((c) => ({
-    label: c.label,
-    href: `/shop/${c.slug}`,
-  })),
-];
 const help: FooterLink[] = [
   { label: "FAQ", href: "/faq" },
   { label: "Shipping & availability", href: "/faq" },
@@ -37,7 +30,16 @@ function Column({ title, items }: { title: string; items: FooterLink[] }) {
   );
 }
 
-export default function Footer() {
+export default async function Footer() {
+  const categories = await getCatalogs();
+  const shop: FooterLink[] = [
+    { label: "All products", href: "/shop" },
+    ...categories.map((c) => ({
+      label: c.label,
+      href: `/shop/${c.slug}`,
+    })),
+  ];
+
   return (
     <footer className="bg-ink pt-12 pb-10 text-white lg:pt-18.5 lg:pb-11.25">
       <div className="shell">

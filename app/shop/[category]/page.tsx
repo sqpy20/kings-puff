@@ -1,22 +1,32 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import CollectionView from "@/components/collection-view";
+import Footer from "@/components/footer";
 import JsonLd from "@/components/json-ld";
-import { categories, getCategory, products } from "@/lib/catalog";
+import Nav from "@/components/nav";
+import { getCatalogBySlug, getCatalogs, getProducts } from "@/lib/catalog-data";
 import {
   breadcrumbJsonLd,
   buildMetadata,
   collectionJsonLd,
 } from "@/lib/seo";
 
-export function generateStaticParams() {
-  return categories.map((c) => ({ category: c.slug }));
+export async function generateStaticParams() {
+  const list = await getCatalogs();
+  return list.length > 0
+    ? list.map((c) => ({ category: c.slug }))
+    : [{ category: "vapes" }];
 }
 
 export async function generateMetadata({
   params,
 }: PageProps<"/shop/[category]">): Promise<Metadata> {
-  const category = getCategory((await params).category);
+  const slug = (await params).category;
+  const [category, list] = await Promise.all([
+    getCatalogBySlug(slug),
+    getProducts(slug),
+  ]);
   if (!category) {
     return buildMetadata({
       title: "Shop",
@@ -24,7 +34,7 @@ export async function generateMetadata({
       path: "/shop",
     });
   }
-  const lead = products.find((p) => p.category === category.slug);
+  const lead = list[0];
   return buildMetadata({
     title: category.label,
     description: category.description,
@@ -34,12 +44,19 @@ export async function generateMetadata({
   });
 }
 
-export default async function CategoryPage({
+async function CategoryContent({
   params,
-}: PageProps<"/shop/[category]">) {
-  const category = getCategory((await params).category);
+}: {
+  params: Promise<{ category: string }>;
+}) {
+  const slug = (await params).category;
+  const [category, categories, list] = await Promise.all([
+    getCatalogBySlug(slug),
+    getCatalogs(),
+    getProducts(slug),
+  ]);
   if (!category) notFound();
-  const list = products.filter((p) => p.category === category.slug);
+
   return (
     <>
       <JsonLd
@@ -52,7 +69,29 @@ export default async function CategoryPage({
           ]),
         ]}
       />
-      <CollectionView category={category} />
+      <CollectionView
+        category={category}
+        categories={categories}
+        products={list}
+      />
     </>
+  );
+}
+
+export default function CategoryPage({
+  params,
+}: PageProps<"/shop/[category]">) {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <Nav />
+          <main className="shell min-h-[60vh] pt-[25px] pb-16" />
+          <Footer />
+        </>
+      }
+    >
+      <CategoryContent params={params} />
+    </Suspense>
   );
 }
