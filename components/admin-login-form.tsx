@@ -91,7 +91,7 @@ export default function AdminLoginForm({
       });
 
       if (verifyRes.status === 403) {
-        await authClient.signOut().catch(() => {});
+        await authClient.signOut().catch(() => { });
         setFormError("This account does not have administrator privileges.");
         setPending(false);
         router.refresh();
@@ -163,11 +163,10 @@ export default function AdminLoginForm({
               setEmail(e.target.value);
               if (emailError) setEmailError(null);
             }}
-            placeholder="admin@momoeliquid.co.uk"
+            placeholder="[EMAIL_ADDRESS]"
             aria-invalid={emailError ? true : undefined}
-            className={`mt-2 block h-[54px] w-full rounded-xl border-2 bg-white px-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${
-              emailError ? "border-[#c8102e]" : "border-ink"
-            }`}
+            className={`mt-2 block h-[54px] w-full rounded-xl border-2 bg-white px-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${emailError ? "border-[#c8102e]" : "border-ink"
+              }`}
           />
           {emailError && (
             <span
@@ -198,9 +197,8 @@ export default function AdminLoginForm({
               }}
               placeholder="Enter your password"
               aria-invalid={passwordError ? true : undefined}
-              className={`block h-[54px] w-full rounded-xl border-2 bg-white pr-20 pl-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${
-                passwordError ? "border-[#c8102e]" : "border-ink"
-              }`}
+              className={`block h-[54px] w-full rounded-xl border-2 bg-white pr-20 pl-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${passwordError ? "border-[#c8102e]" : "border-ink"
+                }`}
             />
             <button
               type="button"

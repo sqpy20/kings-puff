@@ -265,7 +265,7 @@ export default function ConfigTab({
                   Create / promote admin
                 </p>
                 <code className="mt-2 block font-mono text-xs leading-5 break-all">
-                  pnpm run admin:create -- --email admin@momoeliquid.co.uk
+                  pnpm run admin:create -- --email admin@momoeliquidz.co.uk
                   --password &quot;...&quot;
                 </code>
               </div>
