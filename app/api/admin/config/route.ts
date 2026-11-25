@@ -1,9 +1,14 @@
 import { requireAdminApi } from "@/lib/auth/admin";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/catalog";
+import {
+  getCloudinaryCloudName,
+  isCloudinaryConfigured,
+} from "@/lib/cloudinary";
 import { getAdminDbStats } from "@/lib/db";
+import { getMailSummary } from "@/lib/mail";
 import { SITE_LOCALE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
-/** Returns admin session details, live Lakebase DB metrics, and runtime infra metadata. */
+/** Returns admin session details, live Lakebase DB metrics, media config, and runtime infra metadata. */
 export async function GET() {
   const gate = await requireAdminApi();
   if ("response" in gate) return gate.response;
@@ -14,6 +19,12 @@ export async function GET() {
     {
       user: gate.user,
       database,
+      media: {
+        provider: "Cloudinary",
+        configured: isCloudinaryConfigured(),
+        cloudName: getCloudinaryCloudName(),
+      },
+      mail: getMailSummary(),
       storefront: {
         siteName: SITE_NAME,
         siteUrl: SITE_URL,
@@ -28,15 +39,17 @@ export async function GET() {
         robotsDisallow: ["/admin", "/cart", "/checkout", "/age-gate", "/api/"],
         endpoints: {
           public: [
-            "/api/catalogs",
-            "/api/catalogs/[slug]",
-            "/api/products",
-            "/api/products/[id]",
+            "GET /api/catalogs",
+            "GET /api/catalogs/[slug]",
+            "GET /api/products",
+            "GET /api/products/[id]",
+            "POST /api/contact",
           ],
           admin: [
             "/api/admin/session",
             "/api/admin/catalogs",
             "/api/admin/products",
+            "/api/admin/upload",
             "/api/admin/config",
           ],
         },

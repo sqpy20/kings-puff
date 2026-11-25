@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { bgClass } from "@/lib/catalog";
 import { getCatalogs, getProducts } from "@/lib/catalog-data";
+import { BRAND_LOGO_URL } from "@/lib/media";
 import { ArrowIcon } from "./illustrations";
 
 export default async function Categories() {
@@ -23,7 +24,10 @@ export default async function Categories() {
           ? "text-white"
           : "text-ink"
       }`,
-      images: [imgs[0] ?? "/logo.jpg", imgs[1] ?? imgs[0] ?? "/logo.jpg"],
+      images: [
+        imgs[0] ?? BRAND_LOGO_URL,
+        imgs[1] ?? imgs[0] ?? BRAND_LOGO_URL,
+      ],
     };
   });
 

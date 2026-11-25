@@ -7,6 +7,20 @@ import type { AdminDbStats } from "@/lib/db";
 export type AdminConfigPayload = {
   user: AdminUser;
   database: AdminDbStats;
+  media: {
+    provider: string;
+    configured: boolean;
+    cloudName: string | null;
+  };
+  mail: {
+    provider: string;
+    configured: boolean;
+    host: string | null;
+    port: number | null;
+    secure: boolean;
+    from: string | null;
+    contactTo: string;
+  };
   storefront: {
     siteName: string;
     siteUrl: string;
@@ -192,6 +206,42 @@ export default function ConfigTab({
               </h3>
               <dl className="mt-4 space-y-2.5 text-sm">
                 <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                  <dt className="text-ink/70">Media CDN</dt>
+                  <dd className="flex items-center gap-2 font-bold">
+                    <span
+                      className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-extrabold uppercase ${
+                        config.media.configured ? "bg-teal" : "bg-pink"
+                      }`}
+                    >
+                      {config.media.configured ? "Connected" : "Missing"}
+                    </span>
+                    {config.media.provider}
+                    {config.media.cloudName
+                      ? ` (${config.media.cloudName})`
+                      : ""}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                  <dt className="text-ink/70">Mail (SMTP)</dt>
+                  <dd className="flex flex-wrap items-center justify-end gap-2 text-right font-bold">
+                    <span
+                      className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-extrabold uppercase ${
+                        config.mail.configured ? "bg-teal" : "bg-pink"
+                      }`}
+                    >
+                      {config.mail.configured ? "Connected" : "Missing"}
+                    </span>
+                    <span className="font-mono text-xs">
+                      {config.mail.host
+                        ? `${config.mail.host}${config.mail.port ? `:${config.mail.port}` : ""}`
+                        : config.mail.provider}
+                    </span>
+                    <span className="text-xs font-semibold text-ink/70">
+                      → {config.mail.contactTo}
+                    </span>
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
                   <dt className="text-ink/70">Storefront Name</dt>
                   <dd className="font-bold">{config.storefront.siteName}</dd>
                 </div>
@@ -236,7 +286,7 @@ export default function ConfigTab({
                   <ul className="mt-2.5 space-y-1.5 font-mono text-xs">
                     {config.infrastructure.endpoints.public.map((ep) => (
                       <li key={ep} className="font-semibold">
-                        GET {ep}
+                        {ep}
                       </li>
                     ))}
                   </ul>

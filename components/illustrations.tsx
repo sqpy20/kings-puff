@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { SVGProps } from "react";
+import { MEDIA_IMAGES } from "@/lib/media";
 
 export const COLORS = {
   ink: "#212121",
@@ -36,21 +37,21 @@ export function ArrowIcon(props: Props) {
 
 const heroProducts = [
   {
-    src: "/vapes/image-1.png",
+    src: MEDIA_IMAGES.vapes.sodaLish,
     alt: "Momo Soda-lish e-liquid",
     className: "top-[19%] left-[30%] z-20 w-[39%] -rotate-3 bg-cream",
     sizes:
       "(min-width: 1280px) 306px, (min-width: 1024px) 250px, (min-width: 640px) 218px, 172px",
   },
   {
-    src: "/kush/image-1.webp",
+    src: MEDIA_IMAGES.kush.ogKushReserve,
     alt: "OG Kush Reserve flower",
     className: "top-[50%] left-[19%] z-30 w-[29%] -rotate-8 bg-ink",
     sizes:
       "(min-width: 1280px) 228px, (min-width: 1024px) 186px, (min-width: 640px) 162px, 128px",
   },
   {
-    src: "/gummies/image-1.jpeg",
+    src: MEDIA_IMAGES.gummies.blueRaspberryRings,
     alt: "Blue Raspberry Rings gummies",
     className: "top-[48%] left-[52%] z-30 w-[29%] rotate-7 bg-white",
     sizes:

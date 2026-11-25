@@ -1,12 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { type FormEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   BADGES,
   type Category,
   LOW_STOCK_THRESHOLD,
-  PRODUCT_IMAGE_PRESETS,
   type Product,
   type ProductDetailItem,
   bgClass,
@@ -46,7 +45,7 @@ function makeEmptyForm(defaultCategory: string, nextOrder: number): ProductFormS
     stockQty: "25",
     sortOrder: String(nextOrder),
     badge: "",
-    image: PRODUCT_IMAGE_PRESETS[0]?.value ?? "/logo.jpg",
+    image: "",
     meta: "",
     description: "",
     featured: false,
@@ -76,10 +75,41 @@ export default function InventoryTab({
   const [form, setForm] = useState<ProductFormState>(() =>
     makeEmptyForm(catalogs[0]?.slug ?? "vapes", products.length + 1),
   );
-  const [saving, setSaving] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [submitPhase, setSubmitPhase] = useState<"idle" | "uploading" | "saving">("idle");
+  const saving = submitPhase !== "idle";
   const [formError, setFormError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function clearSelectedFile() {
+    setSelectedFile(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+    setFormError(null);
+  }
 
   const catalogBySlug = useMemo(
     () => new Map(catalogs.map((c) => [c.slug, c])),
@@ -110,6 +140,7 @@ export default function InventoryTab({
       products.reduce((max, p) => Math.max(max, p.sortOrder), 0) + 1;
     setEditingId(null);
     setIdLockedToName(true);
+    clearSelectedFile();
     setForm(makeEmptyForm(catalogs[0]?.slug ?? "vapes", nextOrder));
     setFormError(null);
     setFormOpen(true);
@@ -118,6 +149,7 @@ export default function InventoryTab({
   function openEdit(product: Product) {
     setEditingId(product.id);
     setIdLockedToName(false);
+    clearSelectedFile();
     setForm({
       id: product.id,
       name: product.name,
@@ -143,9 +175,44 @@ export default function InventoryTab({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
-    setSaving(true);
+
+    if (!selectedFile && !form.image.trim()) {
+      setFormError("Please select an image file to upload to Cloudinary.");
+      return;
+    }
 
     try {
+      let imageUrl = form.image.trim();
+
+      if (selectedFile) {
+        setSubmitPhase("uploading");
+        const uploadBody = new FormData();
+        uploadBody.append("file", selectedFile);
+        if (form.id.trim()) {
+          uploadBody.append("publicId", form.id.trim());
+        }
+
+        const uploadRes = await fetch("/api/admin/upload", {
+          method: "POST",
+          credentials: "same-origin",
+          body: uploadBody,
+        });
+        const uploadJson = (await uploadRes.json().catch(() => ({}))) as {
+          url?: string;
+          error?: string;
+        };
+
+        if (!uploadRes.ok || !uploadJson.url) {
+          setFormError(
+            uploadJson.error || `Image upload failed (${uploadRes.status}).`,
+          );
+          return;
+        }
+        imageUrl = uploadJson.url;
+      }
+
+      setSubmitPhase("saving");
+
       const payload = {
         id: form.id.trim(),
         name: form.name.trim(),
@@ -154,7 +221,7 @@ export default function InventoryTab({
         stockQty: Number(form.stockQty),
         sortOrder: Number(form.sortOrder || 0),
         badge: form.badge || null,
-        image: form.image.trim(),
+        image: imageUrl,
         meta: form.meta.trim(),
         description: form.description.trim(),
         featured: form.featured,
@@ -185,6 +252,7 @@ export default function InventoryTab({
         return;
       }
 
+      clearSelectedFile();
       await onMutated();
       setFormOpen(false);
       setEditingId(null);
@@ -197,7 +265,7 @@ export default function InventoryTab({
     } catch {
       setFormError("Network error saving product.");
     } finally {
-      setSaving(false);
+      setSubmitPhase("idle");
     }
   }
 
@@ -423,46 +491,6 @@ export default function InventoryTab({
             </label>
 
             <label className="block text-sm font-bold">
-              Image preset
-              <select
-                value={
-                  PRODUCT_IMAGE_PRESETS.some((p) => p.value === form.image)
-                    ? form.image
-                    : ""
-                }
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setForm((prev) => ({ ...prev, image: e.target.value }));
-                  }
-                }}
-                className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream/40 px-3.5 text-sm font-medium"
-              >
-                <option value="">Custom path…</option>
-                {PRODUCT_IMAGE_PRESETS.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
-            <label className="block text-sm font-bold">
-              Image path or HTTPS URL
-              <input
-                type="text"
-                required
-                value={form.image}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, image: e.target.value }))
-                }
-                placeholder="/vapes/image-1.png"
-                className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream/40 px-3.5 font-mono text-sm"
-              />
-            </label>
-
-            <label className="block text-sm font-bold">
               Summary line (meta)
               <input
                 type="text"
@@ -474,6 +502,65 @@ export default function InventoryTab({
                 className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream/40 px-3.5 text-sm font-normal"
               />
             </label>
+          </div>
+
+          <div className="mt-4 rounded-2xl border-2 border-ink bg-sand/60 p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative size-20 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-white">
+                {previewUrl || form.image ? (
+                  <Image
+                    src={previewUrl || form.image}
+                    alt="Product image preview"
+                    fill
+                    sizes="80px"
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="grid size-full place-items-center text-[11px] font-bold text-ink/45">
+                    No image
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <label className="block text-sm font-bold">
+                  Product image upload (uploads directly to Cloudinary on submit)
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    disabled={saving}
+                    onChange={handleFileChange}
+                    className="mt-1.5 block w-full cursor-pointer rounded-xl border-2 border-ink bg-white px-3 py-2 text-sm file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-ink file:px-3.5 file:py-1 file:text-xs file:font-bold file:text-white"
+                  />
+                </label>
+
+                {selectedFile ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-ink/80">
+                    <span>
+                      Ready for direct upload on submit: {selectedFile.name} (
+                      {Math.max(1, Math.round(selectedFile.size / 1024))} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearSelectedFile}
+                      className="cursor-pointer underline underline-offset-2"
+                    >
+                      Clear file
+                    </button>
+                  </div>
+                ) : editingId && form.image ? (
+                  <p className="truncate font-mono text-xs text-ink/65">
+                    Current Cloudinary asset: {form.image}
+                  </p>
+                ) : (
+                  <p className="text-xs text-ink/65">
+                    Supports JPEG, PNG, WebP, GIF, or AVIF up to 10 MB.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <label className="mt-4 block text-sm font-bold">
@@ -582,6 +669,7 @@ export default function InventoryTab({
               type="button"
               disabled={saving}
               onClick={() => {
+                clearSelectedFile();
                 setFormOpen(false);
                 setEditingId(null);
               }}
@@ -594,11 +682,13 @@ export default function InventoryTab({
               disabled={saving}
               className="inline-flex h-10 cursor-pointer items-center rounded-full bg-ink px-6 text-sm font-bold text-white disabled:opacity-60"
             >
-              {saving
-                ? "Saving…"
-                : editingId
-                  ? "Save product changes"
-                  : "Create product"}
+              {submitPhase === "uploading"
+                ? "Uploading image…"
+                : submitPhase === "saving"
+                  ? "Saving product…"
+                  : editingId
+                    ? "Save product changes"
+                    : "Create product"}
             </button>
           </div>
         </form>

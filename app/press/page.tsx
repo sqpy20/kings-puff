@@ -7,6 +7,7 @@ import JsonLd from "@/components/json-ld";
 import Nav from "@/components/nav";
 import { formatPrice } from "@/lib/catalog";
 import { getCatalogs, getProducts } from "@/lib/catalog-data";
+import { BRAND_LOGO_URL } from "@/lib/media";
 import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -24,7 +25,7 @@ export const metadata: Metadata = buildMetadata({
 const assets = [
   {
     name: "Momo Eliquid Square Logo",
-    file: "/logo.jpg",
+    file: BRAND_LOGO_URL,
     download: "momo-eliquid-logo.jpg",
     spec: "800 × 800 px · JPEG",
   },
