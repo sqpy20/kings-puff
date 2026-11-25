@@ -18,6 +18,7 @@ const VALID_TABS: ReadonlySet<AdminTabId> = new Set([
   "overview",
   "catalog",
   "inventory",
+  "users",
   "roles",
   "config",
 ]);

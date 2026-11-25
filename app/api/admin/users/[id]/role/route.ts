@@ -1,4 +1,4 @@
-import { requireAdminPermission } from "@/lib/auth/admin";
+import { requireAdminAnyPermission } from "@/lib/auth/admin";
 import {
   assignUserRole,
   parseRbacJsonBody,
@@ -9,7 +9,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireAdminPermission("roles.write");
+  const gate = await requireAdminAnyPermission(["users.write", "roles.write"]);
   if ("response" in gate) return gate.response;
 
   try {

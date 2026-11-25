@@ -26,6 +26,8 @@ type UserRow = {
   name: string | null;
   auth_role: string | null;
   banned: boolean | null;
+  ban_reason: string | null;
+  active_sessions: number | string | null;
   created_at: Date | string;
   role_slug: string | null;
   role_name: string | null;
@@ -49,6 +51,7 @@ export class RbacError extends Error {
 }
 
 const ROLE_SLUG_RE = /^[a-z0-9][a-z0-9_-]{1,47}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -95,6 +98,8 @@ function mapUserRow(
     name: row.name ?? null,
     authRole: row.auth_role ?? "user",
     banned: Boolean(row.banned),
+    banReason: row.ban_reason ?? null,
+    activeSessions: Number(row.active_sessions ?? 0),
     rbacRole: roleSlug,
     rbacRoleName: roleName,
     permissions,
@@ -134,7 +139,7 @@ export function rbacErrorResponse(err: unknown): Response {
   const code = extractPgCode(err);
   if (code === "23505") {
     return Response.json(
-      { error: "A role with this slug already exists." },
+      { error: "A record with this identifier already exists." },
       { status: 409 },
     );
   }
@@ -148,7 +153,7 @@ export function rbacErrorResponse(err: unknown): Response {
     );
   }
   return Response.json(
-    { error: "Unexpected error processing RBAC request." },
+    { error: "Unexpected error processing user or role request." },
     { status: 500 },
   );
 }
@@ -438,7 +443,7 @@ export async function deleteRole(slug: string): Promise<{ deleted: string }> {
   }
 }
 
-/** Lists all Neon Auth users joined with their effective RBAC role and permissions. */
+/** Lists all Neon Auth users joined with their RBAC role, permissions, and active sessions. */
 export async function listAdminUsers(): Promise<AdminUserRecord[]> {
   const db = getPool();
   const [adminDefaultRes, usersRes] = await Promise.all([
@@ -453,6 +458,13 @@ export async function listAdminUsers(): Promise<AdminUserRecord[]> {
         u.name,
         u.role AS auth_role,
         u.banned,
+        u."banReason" AS ban_reason,
+        (
+          SELECT COUNT(*)::int
+          FROM neon_auth.session s
+          WHERE s."userId" = u.id
+            AND s."expiresAt" > NOW()
+        ) AS active_sessions,
         u."createdAt" AS created_at,
         aur.role_slug,
         ar.name AS role_name,
@@ -476,20 +488,201 @@ export async function listAdminUsers(): Promise<AdminUserRecord[]> {
   return usersRes.rows.map((row) => mapUserRow(row, defaultAdminRole));
 }
 
-/** Assigns an RBAC role to a Neon Auth user while guarding against Super Admin lockout. */
-export async function assignUserRole(
+async function getAdminUserById(userId: string): Promise<AdminUserRecord> {
+  const users = await listAdminUsers();
+  const found = users.find((u) => u.id === userId);
+  if (!found) {
+    throw new RbacError(404, "User record could not be loaded.");
+  }
+  return found;
+}
+
+/** Creates a new admin team user via Neon Auth and assigns their initial RBAC role. */
+export async function createAdminUser(
+  raw: Record<string, unknown>,
+  actorUserId: string,
+  origin: string,
+): Promise<AdminUserRecord> {
+  const email =
+    typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
+  const password = typeof raw.password === "string" ? raw.password : "";
+  const rawName = typeof raw.name === "string" ? raw.name.trim() : "";
+  const name = rawName || email.split("@")[0] || "";
+  const roleSlug =
+    typeof raw.roleSlug === "string" && raw.roleSlug.trim()
+      ? raw.roleSlug.trim().toLowerCase()
+      : SYSTEM_ROLES.ADMIN;
+
+  if (!EMAIL_RE.test(email)) {
+    throw new RbacError(400, "Please enter a valid email address.");
+  }
+  if (password.length < 8) {
+    throw new RbacError(400, "Password must be at least 8 characters long.");
+  }
+  if (!name || name.length > 120) {
+    throw new RbacError(
+      400,
+      "Name must be between 1 and 120 characters.",
+    );
+  }
+  if (!ROLE_SLUG_RE.test(roleSlug)) {
+    throw new RbacError(400, "Invalid role slug.");
+  }
+
+  const db = getPool();
+  const [roleRes, existingUserRes] = await Promise.all([
+    db.query<{ slug: string }>(
+      `SELECT slug FROM public.admin_roles WHERE slug = $1`,
+      [roleSlug],
+    ),
+    db.query<{ id: string }>(
+      `SELECT id FROM neon_auth."user" WHERE lower(email) = lower($1)`,
+      [email],
+    ),
+  ]);
+
+  if ((roleRes.rowCount ?? 0) === 0) {
+    throw new RbacError(404, `Role "${roleSlug}" was not found.`);
+  }
+  if ((existingUserRes.rowCount ?? 0) > 0) {
+    throw new RbacError(
+      409,
+      `A user with email "${email}" already exists.`,
+    );
+  }
+
+  const authBaseUrl = process.env.NEON_AUTH_BASE_URL?.replace(/\/+$/, "");
+  if (!authBaseUrl) {
+    throw new RbacError(500, "NEON_AUTH_BASE_URL is not configured.");
+  }
+
+  const requestOrigin =
+    origin.trim() || process.env.ADMIN_ORIGIN || "http://localhost:3000";
+
+  const signUpRes = await fetch(`${authBaseUrl}/sign-up/email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: requestOrigin,
+    },
+    body: JSON.stringify({ email, password, name }),
+  });
+
+  if (!signUpRes.ok) {
+    const body = (await signUpRes.json().catch(() => ({}))) as {
+      code?: unknown;
+      message?: unknown;
+    };
+    const code = typeof body?.code === "string" ? body.code : "";
+    const message = typeof body?.message === "string" ? body.message : "";
+    const alreadyExists =
+      signUpRes.status === 409 ||
+      signUpRes.status === 422 ||
+      code === "USER_ALREADY_EXISTS" ||
+      /already exists|already registered/i.test(message);
+
+    if (alreadyExists) {
+      throw new RbacError(
+        409,
+        `A user with email "${email}" already exists.`,
+      );
+    }
+
+    throw new RbacError(
+      502,
+      `Neon Auth sign-up failed (${signUpRes.status}): ${message || code || "Unknown error"}`,
+    );
+  }
+
+  const validActor = UUID_RE.test(actorUserId) ? actorUserId : null;
+  const updRes = await db.query<{ id: string }>(
+    `UPDATE neon_auth."user"
+     SET role = 'admin',
+         "emailVerified" = true,
+         name = $2,
+         "updatedAt" = NOW()
+     WHERE lower(email) = lower($1)
+     RETURNING id`,
+    [email, name],
+  );
+
+  if ((updRes.rowCount ?? 0) === 0) {
+    throw new RbacError(
+      500,
+      "User was created in Neon Auth but could not be located in neon_auth.user.",
+    );
+  }
+
+  const userId = updRes.rows[0].id;
+  await db.query(
+    `INSERT INTO public.admin_user_roles (user_id, role_slug, assigned_by, updated_at)
+     VALUES ($1::uuid, $2, $3::uuid, NOW())
+     ON CONFLICT (user_id) DO UPDATE SET
+       role_slug = EXCLUDED.role_slug,
+       assigned_by = EXCLUDED.assigned_by,
+       updated_at = NOW()`,
+    [userId, roleSlug, validActor],
+  );
+
+  return getAdminUserById(userId);
+}
+
+/** Updates a user's profile name, RBAC role, and/or ban/suspension state. */
+export async function updateAdminUser(
   targetUserId: string,
-  roleSlug: string,
+  raw: Record<string, unknown>,
   actorUserId: string,
 ): Promise<AdminUserRecord> {
   const cleanUserId = targetUserId.trim();
-  const cleanRoleSlug = roleSlug.trim().toLowerCase();
-
   if (!UUID_RE.test(cleanUserId)) {
     throw new RbacError(400, "Invalid user ID.");
   }
-  if (!ROLE_SLUG_RE.test(cleanRoleSlug)) {
-    throw new RbacError(400, "Invalid role slug.");
+
+  let nextName: string | undefined;
+  if (raw.name !== undefined) {
+    if (typeof raw.name !== "string") {
+      throw new RbacError(400, "Name must be a string.");
+    }
+    const trimmed = raw.name.trim();
+    if (!trimmed || trimmed.length > 120) {
+      throw new RbacError(400, "Name must be between 1 and 120 characters.");
+    }
+    nextName = trimmed;
+  }
+
+  let nextRoleSlug: string | undefined;
+  if (raw.roleSlug !== undefined) {
+    if (typeof raw.roleSlug !== "string") {
+      throw new RbacError(400, "roleSlug must be a string.");
+    }
+    const trimmed = raw.roleSlug.trim().toLowerCase();
+    if (!ROLE_SLUG_RE.test(trimmed)) {
+      throw new RbacError(400, "Invalid role slug.");
+    }
+    nextRoleSlug = trimmed;
+  }
+
+  let nextBanned: boolean | undefined;
+  if (raw.banned !== undefined) {
+    if (typeof raw.banned !== "boolean") {
+      throw new RbacError(400, "banned must be a boolean.");
+    }
+    nextBanned = raw.banned;
+  }
+
+  let nextBanReason: string | null | undefined;
+  if (raw.banReason !== undefined) {
+    if (raw.banReason === null) {
+      nextBanReason = null;
+    } else if (typeof raw.banReason === "string") {
+      const trimmed = raw.banReason.trim();
+      if (trimmed.length > 240) {
+        throw new RbacError(400, "Ban reason must be 240 characters or fewer.");
+      }
+      nextBanReason = trimmed || null;
+    } else {
+      throw new RbacError(400, "banReason must be a string or null.");
+    }
   }
 
   const db = getPool();
@@ -498,74 +691,118 @@ export async function assignUserRole(
   try {
     await client.query("BEGIN");
 
-    const [userRes, roleRes, currentAssignRes] = await Promise.all([
-      client.query<{ id: string }>(
-        `SELECT id FROM neon_auth."user" WHERE id = $1::uuid`,
-        [cleanUserId],
-      ),
-      client.query<{ slug: string }>(
-        `SELECT slug FROM public.admin_roles WHERE slug = $1`,
-        [cleanRoleSlug],
-      ),
-      client.query<{ role_slug: string }>(
-        `SELECT role_slug FROM public.admin_user_roles WHERE user_id = $1::uuid`,
-        [cleanUserId],
-      ),
-    ]);
+    const userRes = await client.query<{
+      id: string;
+      name: string | null;
+      banned: boolean | null;
+      ban_reason: string | null;
+      role_slug: string | null;
+    }>(
+      `SELECT u.id, u.name, u.banned, u."banReason" AS ban_reason, aur.role_slug
+       FROM neon_auth."user" u
+       LEFT JOIN public.admin_user_roles aur ON aur.user_id = u.id
+       WHERE u.id = $1::uuid`,
+      [cleanUserId],
+    );
 
     if ((userRes.rowCount ?? 0) === 0) {
       throw new RbacError(404, "Target user was not found.");
     }
-    if ((roleRes.rowCount ?? 0) === 0) {
-      throw new RbacError(404, `Role "${cleanRoleSlug}" was not found.`);
+
+    const current = userRes.rows[0];
+    const currentRole = current.role_slug ?? SYSTEM_ROLES.ADMIN;
+
+    if (nextRoleSlug) {
+      const roleRes = await client.query<{ slug: string }>(
+        `SELECT slug FROM public.admin_roles WHERE slug = $1`,
+        [nextRoleSlug],
+      );
+      if ((roleRes.rowCount ?? 0) === 0) {
+        throw new RbacError(404, `Role "${nextRoleSlug}" was not found.`);
+      }
     }
 
-    const currentRole = currentAssignRes.rows[0]?.role_slug ?? SYSTEM_ROLES.ADMIN;
+    if (cleanUserId === actorUserId && nextBanned === true) {
+      throw new RbacError(400, "You cannot suspend your own account.");
+    }
 
     if (
       cleanUserId === actorUserId &&
       currentRole === SYSTEM_ROLES.SUPER_ADMIN &&
-      cleanRoleSlug !== SYSTEM_ROLES.SUPER_ADMIN
+      nextRoleSlug &&
+      nextRoleSlug !== SYSTEM_ROLES.SUPER_ADMIN
     ) {
       throw new RbacError(400, "You cannot remove your own Super Admin role.");
     }
 
-    if (
+    const removesSuperAdminPrivilege =
       currentRole === SYSTEM_ROLES.SUPER_ADMIN &&
-      cleanRoleSlug !== SYSTEM_ROLES.SUPER_ADMIN
-    ) {
-      const countRes = await client.query<{ total: number }>(
+      !current.banned &&
+      ((nextRoleSlug !== undefined &&
+        nextRoleSlug !== SYSTEM_ROLES.SUPER_ADMIN) ||
+        nextBanned === true);
+
+    if (removesSuperAdminPrivilege) {
+      const otherActiveSupers = await client.query<{ total: number }>(
         `SELECT COUNT(*)::int AS total
-         FROM public.admin_user_roles
-         WHERE role_slug = $1`,
-        [SYSTEM_ROLES.SUPER_ADMIN],
+         FROM public.admin_user_roles aur
+         JOIN neon_auth."user" u ON u.id = aur.user_id
+         WHERE aur.role_slug = $1
+           AND aur.user_id <> $2::uuid
+           AND COALESCE(u.banned, false) = false`,
+        [SYSTEM_ROLES.SUPER_ADMIN, cleanUserId],
       );
-      if ((countRes.rows[0]?.total ?? 0) <= 1) {
+      if ((otherActiveSupers.rows[0]?.total ?? 0) < 1) {
         throw new RbacError(
           400,
-          "At least one Super Admin account must remain.",
+          "At least one active Super Admin account must remain.",
         );
       }
     }
 
-    const validActor = UUID_RE.test(actorUserId) ? actorUserId : null;
-    await client.query(
-      `INSERT INTO public.admin_user_roles (user_id, role_slug, assigned_by, updated_at)
-       VALUES ($1::uuid, $2, $3::uuid, NOW())
-       ON CONFLICT (user_id) DO UPDATE SET
-         role_slug = EXCLUDED.role_slug,
-         assigned_by = EXCLUDED.assigned_by,
-         updated_at = NOW()`,
-      [cleanUserId, cleanRoleSlug, validActor],
-    );
+    const finalName = nextName !== undefined ? nextName : current.name;
+    const finalBanned =
+      nextBanned !== undefined ? nextBanned : Boolean(current.banned);
+    const finalBanReason =
+      nextBanned === false
+        ? null
+        : nextBanReason !== undefined
+          ? nextBanReason
+          : current.ban_reason;
 
     await client.query(
       `UPDATE neon_auth."user"
-       SET role = 'admin'
-       WHERE id = $1::uuid
-         AND lower(COALESCE(role, '')) NOT LIKE '%admin%'`,
-      [cleanUserId],
+       SET name = $2,
+           banned = $3,
+           "banReason" = $4,
+           role = CASE
+             WHEN lower(COALESCE(role, '')) LIKE '%admin%' THEN role
+             ELSE 'admin'
+           END,
+           "updatedAt" = NOW()
+       WHERE id = $1::uuid`,
+      [cleanUserId, finalName, finalBanned, finalBanReason],
     );
+
+    if (nextRoleSlug) {
+      const validActor = UUID_RE.test(actorUserId) ? actorUserId : null;
+      await client.query(
+        `INSERT INTO public.admin_user_roles (user_id, role_slug, assigned_by, updated_at)
+         VALUES ($1::uuid, $2, $3::uuid, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET
+           role_slug = EXCLUDED.role_slug,
+           assigned_by = EXCLUDED.assigned_by,
+           updated_at = NOW()`,
+        [cleanUserId, nextRoleSlug, validActor],
+      );
+    }
+
+    if (nextBanned === true) {
+      await client.query(
+        `DELETE FROM neon_auth.session WHERE "userId" = $1::uuid`,
+        [cleanUserId],
+      );
+    }
 
     await client.query("COMMIT");
   } catch (err) {
@@ -575,10 +812,95 @@ export async function assignUserRole(
     client.release();
   }
 
-  const users = await listAdminUsers();
-  const updated = users.find((u) => u.id === cleanUserId);
-  if (!updated) {
-    throw new RbacError(404, "Updated user record could not be loaded.");
+  return getAdminUserById(cleanUserId);
+}
+
+/** Deletes an admin user and cleans up their sessions, accounts, and RBAC assignment. */
+export async function deleteAdminUser(
+  targetUserId: string,
+  actorUserId: string,
+): Promise<{ deleted: string }> {
+  const cleanUserId = targetUserId.trim();
+  if (!UUID_RE.test(cleanUserId)) {
+    throw new RbacError(400, "Invalid user ID.");
   }
-  return updated;
+  if (cleanUserId === actorUserId) {
+    throw new RbacError(400, "You cannot delete your own account.");
+  }
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const userRes = await client.query<{
+      id: string;
+      banned: boolean | null;
+      role_slug: string | null;
+    }>(
+      `SELECT u.id, u.banned, aur.role_slug
+       FROM neon_auth."user" u
+       LEFT JOIN public.admin_user_roles aur ON aur.user_id = u.id
+       WHERE u.id = $1::uuid`,
+      [cleanUserId],
+    );
+
+    if ((userRes.rowCount ?? 0) === 0) {
+      throw new RbacError(404, "Target user was not found.");
+    }
+
+    const current = userRes.rows[0];
+    if (current.role_slug === SYSTEM_ROLES.SUPER_ADMIN && !current.banned) {
+      const otherActiveSupers = await client.query<{ total: number }>(
+        `SELECT COUNT(*)::int AS total
+         FROM public.admin_user_roles aur
+         JOIN neon_auth."user" u ON u.id = aur.user_id
+         WHERE aur.role_slug = $1
+           AND aur.user_id <> $2::uuid
+           AND COALESCE(u.banned, false) = false`,
+        [SYSTEM_ROLES.SUPER_ADMIN, cleanUserId],
+      );
+      if ((otherActiveSupers.rows[0]?.total ?? 0) < 1) {
+        throw new RbacError(
+          400,
+          "At least one active Super Admin account must remain.",
+        );
+      }
+    }
+
+    await client.query(
+      `DELETE FROM public.admin_user_roles WHERE user_id = $1::uuid`,
+      [cleanUserId],
+    );
+    await client.query(
+      `DELETE FROM neon_auth.session WHERE "userId" = $1::uuid`,
+      [cleanUserId],
+    );
+    await client.query(
+      `DELETE FROM neon_auth.account WHERE "userId" = $1::uuid`,
+      [cleanUserId],
+    );
+    await client.query(
+      `DELETE FROM neon_auth."user" WHERE id = $1::uuid`,
+      [cleanUserId],
+    );
+
+    await client.query("COMMIT");
+    return { deleted: cleanUserId };
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Assigns an RBAC role to a Neon Auth user while guarding against Super Admin lockout. */
+export async function assignUserRole(
+  targetUserId: string,
+  roleSlug: string,
+  actorUserId: string,
+): Promise<AdminUserRecord> {
+  return updateAdminUser(targetUserId, { roleSlug }, actorUserId);
 }

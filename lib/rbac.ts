@@ -37,17 +37,31 @@ export const PERMISSIONS = [
       "Create, edit, publish/unpublish, adjust stock, upload images, and delete products",
   },
   {
+    key: "users.read",
+    group: "Users",
+    label: "View users",
+    description:
+      "View admin user directory, role assignments, and session status",
+  },
+  {
+    key: "users.write",
+    group: "Users",
+    label: "Manage users",
+    description:
+      "Create users, edit profiles/roles, suspend/unban accounts, and delete users",
+  },
+  {
     key: "roles.read",
-    group: "Roles & Access",
-    label: "View roles & users",
-    description: "View role permission matrix and team member assignments",
+    group: "Roles",
+    label: "View roles & permissions",
+    description: "View roles and the permission matrix",
   },
   {
     key: "roles.write",
-    group: "Roles & Access",
-    label: "Manage roles & users",
+    group: "Roles",
+    label: "Manage roles & permissions",
     description:
-      "Edit role permissions, create/delete custom roles, and assign user roles",
+      "Edit role metadata and permissions, and create/delete custom roles",
   },
   {
     key: "config.view",
@@ -69,7 +83,8 @@ export const PERMISSION_GROUPS: readonly string[] = [
   "Overview",
   "Catalog",
   "Inventory",
-  "Roles & Access",
+  "Users",
+  "Roles",
   "Config",
 ];
 
@@ -92,6 +107,8 @@ export type AdminUserRecord = {
   name: string | null;
   authRole: string;
   banned: boolean;
+  banReason: string | null;
+  activeSessions: number;
   rbacRole: string;
   rbacRoleName: string;
   permissions: PermissionKey[];

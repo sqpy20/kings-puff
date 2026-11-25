@@ -1,4 +1,7 @@
-import { requireAdminPermission } from "@/lib/auth/admin";
+import {
+  requireAdminAnyPermission,
+  requireAdminPermission,
+} from "@/lib/auth/admin";
 import { PERMISSIONS } from "@/lib/rbac";
 import {
   createRole,
@@ -8,7 +11,7 @@ import {
 } from "@/lib/rbac-data";
 
 export async function GET() {
-  const gate = await requireAdminPermission("roles.read");
+  const gate = await requireAdminAnyPermission(["roles.read", "users.read"]);
   if ("response" in gate) return gate.response;
 
   try {

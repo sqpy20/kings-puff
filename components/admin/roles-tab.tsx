@@ -1,11 +1,9 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import type { AdminUser } from "@/lib/auth/admin";
 import {
   ALL_PERMISSION_KEYS,
   type AdminRole,
-  type AdminUserRecord,
   PERMISSIONS,
   PERMISSION_GROUPS,
   type PermissionKey,
@@ -20,27 +18,24 @@ function slugifyRole(value: string): string {
     .replace(/^[_-]+|[_-]+$/g, "");
 }
 
+type RoleDraft = {
+  name?: string;
+  description?: string;
+  permissions?: PermissionKey[];
+};
+
 export default function RolesTab({
-  currentUser,
   roles,
-  users,
   canWrite,
   onMutated,
   onFlash,
 }: {
-  currentUser: AdminUser;
   roles: AdminRole[];
-  users: AdminUserRecord[];
   canWrite: boolean;
   onMutated: () => Promise<void>;
   onFlash: (kind: "success" | "error", text: string) => void;
 }) {
-  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
-  const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
-
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, PermissionKey[]>>(
-    {},
-  );
+  const [drafts, setDrafts] = useState<Record<string, RoleDraft>>({});
   const [savingRoleSlug, setSavingRoleSlug] = useState<string | null>(null);
   const [confirmDeleteSlug, setConfirmDeleteSlug] = useState<string | null>(
     null,
@@ -58,72 +53,38 @@ export default function RolesTab({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  async function handleAssignUser(user: AdminUserRecord) {
-    const nextRole = selectedRoles[user.id] ?? user.rbacRole;
-    if (!nextRole || nextRole === user.rbacRole) return;
-
-    setAssigningUserId(user.id);
-    try {
-      const res = await fetch(
-        `/api/admin/users/${encodeURIComponent(user.id)}/role`,
-        {
-          method: "PATCH",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roleSlug: nextRole }),
-        },
-      );
-      const json = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        user?: AdminUserRecord;
-      };
-      if (!res.ok) {
-        onFlash("error", json.error || `Failed to assign role (${res.status}).`);
-        return;
-      }
-
-      setSelectedRoles((prev) => {
-        const copy = { ...prev };
-        delete copy[user.id];
-        return copy;
-      });
-      await onMutated();
-      onFlash(
-        "success",
-        `Updated ${user.email} to ${json.user?.rbacRoleName ?? nextRole}.`,
-      );
-    } catch {
-      onFlash("error", "Network error assigning user role.");
-    } finally {
-      setAssigningUserId(null);
-    }
+  function getDraft(role: AdminRole) {
+    const entry = drafts[role.slug];
+    return {
+      name: entry?.name ?? role.name,
+      description: entry?.description ?? role.description,
+      permissions:
+        role.slug === SYSTEM_ROLES.SUPER_ADMIN
+          ? [...ALL_PERMISSION_KEYS]
+          : (entry?.permissions ?? role.permissions),
+    };
   }
 
-  function getDraftPermissions(role: AdminRole): PermissionKey[] {
-    if (role.slug === SYSTEM_ROLES.SUPER_ADMIN) {
-      return [...ALL_PERMISSION_KEYS];
-    }
-    return roleDrafts[role.slug] ?? role.permissions;
+  function updateDraft(slug: string, patch: Partial<RoleDraft>) {
+    setDrafts((prev) => ({
+      ...prev,
+      [slug]: { ...(prev[slug] ?? {}), ...patch },
+    }));
   }
 
   function toggleRolePermission(role: AdminRole, key: PermissionKey) {
     if (!canWrite || role.slug === SYSTEM_ROLES.SUPER_ADMIN) return;
-    const current = getDraftPermissions(role);
+    const current = getDraft(role).permissions;
     const exists = current.includes(key);
     const next = exists
       ? current.filter((item) => item !== key)
       : [...current, key];
-    setRoleDrafts((prev) => ({ ...prev, [role.slug]: next }));
+    updateDraft(role.slug, { permissions: next });
   }
 
-  function setAllRolePermissions(role: AdminRole, keys: PermissionKey[]) {
+  async function handleSaveRole(role: AdminRole) {
     if (!canWrite || role.slug === SYSTEM_ROLES.SUPER_ADMIN) return;
-    setRoleDrafts((prev) => ({ ...prev, [role.slug]: keys }));
-  }
-
-  async function handleSaveRolePermissions(role: AdminRole) {
-    if (!canWrite || role.slug === SYSTEM_ROLES.SUPER_ADMIN) return;
-    const permissions = getDraftPermissions(role);
+    const draft = getDraft(role);
     setSavingRoleSlug(role.slug);
 
     try {
@@ -133,7 +94,11 @@ export default function RolesTab({
           method: "PATCH",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ permissions }),
+          body: JSON.stringify({
+            ...(role.isSystem ? {} : { name: draft.name.trim() }),
+            description: draft.description.trim(),
+            permissions: draft.permissions,
+          }),
         },
       );
       const json = (await res.json().catch(() => ({}))) as {
@@ -145,7 +110,7 @@ export default function RolesTab({
         return;
       }
 
-      setRoleDrafts((prev) => {
+      setDrafts((prev) => {
         const copy = { ...prev };
         delete copy[role.slug];
         return copy;
@@ -153,10 +118,10 @@ export default function RolesTab({
       await onMutated();
       onFlash(
         "success",
-        `Saved ${permissions.length} permission(s) for "${json.role?.name ?? role.name}".`,
+        `Saved role "${json.role?.name ?? draft.name}" (${draft.permissions.length} permission(s)).`,
       );
     } catch {
-      onFlash("error", "Network error saving role permissions.");
+      onFlash("error", "Network error saving role.");
     } finally {
       setSavingRoleSlug(null);
     }
@@ -234,15 +199,15 @@ export default function RolesTab({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
-            Roles &amp; access control
+            Role management
           </h2>
           <p className="mt-1 text-sm text-ink/70">
-            Configure granular module permissions per role and assign roles to
-            team accounts stored in Lakebase Postgres.
+            Create custom roles, edit role descriptions, and toggle granular
+            module permissions stored in Lakebase Postgres.
           </p>
         </div>
 
@@ -259,7 +224,7 @@ export default function RolesTab({
           </button>
         ) : (
           <span className="rounded-full border-2 border-ink bg-sand px-4 py-1.5 text-xs font-extrabold tracking-[0.06em] uppercase">
-            Read-only access
+            Read-only
           </span>
         )}
       </div>
@@ -394,294 +359,205 @@ export default function RolesTab({
         </form>
       )}
 
-      <section className="rounded-[24px] border-2 border-ink bg-white p-5 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/15 pb-4">
-          <div>
-            <h3 className="text-lg font-extrabold">Team members &amp; roles</h3>
-            <p className="text-xs text-ink/65">
-              Registered Neon Auth accounts mapped to RBAC roles.
-            </p>
-          </div>
-          <span className="rounded-full border border-ink bg-sand px-3 py-0.5 text-xs font-extrabold">
-            {users.length} account{users.length === 1 ? "" : "s"}
-          </span>
-        </div>
+      <div className="space-y-5">
+        {roles.map((role) => {
+          const isSuperAdmin = role.slug === SYSTEM_ROLES.SUPER_ADMIN;
+          const draft = getDraft(role);
+          const permissionsChanged =
+            draft.permissions.length !== role.permissions.length ||
+            draft.permissions.some((p) => !role.permissions.includes(p));
+          const metaChanged =
+            (!role.isSystem && draft.name !== role.name) ||
+            draft.description !== role.description;
+          const hasChanges = permissionsChanged || metaChanged;
+          const isSaving = savingRoleSlug === role.slug;
+          const isDeleting = deletingRoleSlug === role.slug;
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b-2 border-ink text-xs font-extrabold tracking-[0.08em] uppercase text-ink/65">
-                <th className="py-3 pr-4">User</th>
-                <th className="py-3 pr-4">Current RBAC role</th>
-                <th className="py-3 pr-4">Active permissions</th>
-                {canWrite && <th className="py-3 text-right">Assign role</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink/15">
-              {users.map((u) => {
-                const isSelf = u.id === currentUser.id;
-                const isSelfSuperAdmin =
-                  isSelf && u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN;
-                const draftRole = selectedRoles[u.id] ?? u.rbacRole;
-                const changed = draftRole !== u.rbacRole;
-                const isAssigning = assigningUserId === u.id;
+          return (
+            <article
+              key={role.slug}
+              className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/15 pb-4">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-extrabold">{role.name}</h3>
+                    <code className="rounded-md bg-sand px-2 py-0.5 text-xs font-bold text-ink/75">
+                      {role.slug}
+                    </code>
+                    {role.isSystem && (
+                      <span className="rounded-full border border-ink bg-cream px-2.5 py-0.5 text-[11px] font-extrabold uppercase">
+                        System
+                      </span>
+                    )}
+                    {isSuperAdmin && (
+                      <span className="rounded-full border border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase">
+                        All permissions locked
+                      </span>
+                    )}
+                  </div>
 
-                return (
-                  <tr key={u.id} className="hover:bg-cream/50">
-                    <td className="py-3.5 pr-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-ink">
-                          {u.name || u.email}
-                        </span>
-                        {isSelf && (
-                          <span className="rounded-full border border-ink bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase">
-                            You
-                          </span>
-                        )}
-                        {u.banned && (
-                          <span className="rounded-full border border-[#c8102e] bg-[#fff5f6] px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#c8102e]">
-                            Banned
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-ink/65">{u.email}</p>
-                    </td>
-                    <td className="py-3.5 pr-4">
-                      <span
-                        className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-extrabold ${
-                          u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
-                            ? "bg-lime text-ink"
-                            : u.permissions.length > 0
-                              ? "bg-teal text-ink"
-                              : "bg-sand text-ink"
+                  {canWrite && !isSuperAdmin ? (
+                    <div className="grid gap-3 pt-1 sm:grid-cols-2">
+                      {!role.isSystem && (
+                        <label className="block text-xs font-bold text-ink/75">
+                          Role name
+                          <input
+                            type="text"
+                            value={draft.name}
+                            onChange={(e) =>
+                              updateDraft(role.slug, { name: e.target.value })
+                            }
+                            className="mt-1 block h-9 w-full rounded-xl border-2 border-ink bg-cream/40 px-3 text-xs font-bold text-ink"
+                          />
+                        </label>
+                      )}
+                      <label
+                        className={`block text-xs font-bold text-ink/75 ${
+                          role.isSystem ? "sm:col-span-2" : ""
                         }`}
                       >
-                        {u.rbacRoleName}
-                      </span>
-                    </td>
-                    <td className="py-3.5 pr-4 text-xs font-semibold text-ink/75">
-                      {u.permissions.length} of {ALL_PERMISSION_KEYS.length}{" "}
-                      permissions
-                    </td>
-                    {canWrite && (
-                      <td className="py-3.5 text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
-                          <select
-                            aria-label={`Select role for ${u.email}`}
-                            disabled={isSelfSuperAdmin || isAssigning}
-                            value={draftRole}
-                            onChange={(e) =>
-                              setSelectedRoles((prev) => ({
-                                ...prev,
-                                [u.id]: e.target.value,
-                              }))
-                            }
-                            className="h-9 rounded-xl border-2 border-ink bg-white px-2.5 text-xs font-bold disabled:opacity-60"
-                          >
-                            {roles.map((r) => (
-                              <option key={r.slug} value={r.slug}>
-                                {r.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            disabled={
-                              !changed || isSelfSuperAdmin || isAssigning
-                            }
-                            onClick={() => handleAssignUser(u)}
-                            className="inline-flex h-9 cursor-pointer items-center rounded-full bg-ink px-4 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {isAssigning ? "Saving…" : "Assign"}
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-              {users.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={canWrite ? 4 : 3}
-                    className="py-6 text-center text-ink/60"
+                        Description
+                        <input
+                          type="text"
+                          value={draft.description}
+                          onChange={(e) =>
+                            updateDraft(role.slug, {
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Describe what this role can do…"
+                          className="mt-1 block h-9 w-full rounded-xl border-2 border-ink bg-cream/40 px-3 text-xs font-medium text-ink"
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    role.description && (
+                      <p className="text-sm text-ink/75">{role.description}</p>
+                    )
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-ink/30 bg-cream px-3 py-1 text-xs font-bold">
+                    {role.userCount} user{role.userCount === 1 ? "" : "s"}
+                  </span>
+                  <span className="rounded-full border border-ink bg-teal/50 px-3 py-1 text-xs font-extrabold">
+                    {draft.permissions.length} / {ALL_PERMISSION_KEYS.length}{" "}
+                    enabled
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {PERMISSION_GROUPS.map((group) => (
+                  <div
+                    key={group}
+                    className="rounded-2xl border border-ink/15 bg-cream/60 p-4"
                   >
-                    No team accounts found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="space-y-5">
-        <div>
-          <h3 className="text-xl font-extrabold tracking-[-0.02em]">
-            Role permission matrix
-          </h3>
-          <p className="text-xs text-ink/65">
-            Grant or revoke module access per role. Changes apply immediately on
-            the user&apos;s next request.
-          </p>
-        </div>
-
-        <div className="space-y-5">
-          {roles.map((role) => {
-            const isSuperAdmin = role.slug === SYSTEM_ROLES.SUPER_ADMIN;
-            const draft = getDraftPermissions(role);
-            const hasChanges =
-              draft.length !== role.permissions.length ||
-              draft.some((p) => !role.permissions.includes(p));
-            const isSaving = savingRoleSlug === role.slug;
-            const isDeleting = deletingRoleSlug === role.slug;
-
-            return (
-              <article
-                key={role.slug}
-                className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/15 pb-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-lg font-extrabold">{role.name}</h4>
-                      <code className="rounded-md bg-sand px-2 py-0.5 text-xs font-bold text-ink/75">
-                        {role.slug}
-                      </code>
-                      {role.isSystem && (
-                        <span className="rounded-full border border-ink bg-cream px-2.5 py-0.5 text-[11px] font-extrabold uppercase">
-                          System
-                        </span>
-                      )}
-                      {isSuperAdmin && (
-                        <span className="rounded-full border border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase">
-                          All permissions locked
-                        </span>
-                      )}
-                    </div>
-                    {role.description && (
-                      <p className="mt-1.5 text-sm text-ink/75">
-                        {role.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-ink/30 bg-cream px-3 py-1 text-xs font-bold">
-                      {role.userCount} user{role.userCount === 1 ? "" : "s"}
-                    </span>
-                    <span className="rounded-full border border-ink bg-teal/50 px-3 py-1 text-xs font-extrabold">
-                      {draft.length} / {ALL_PERMISSION_KEYS.length} enabled
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {PERMISSION_GROUPS.map((group) => (
-                    <div
-                      key={group}
-                      className="rounded-2xl border border-ink/15 bg-cream/60 p-4"
-                    >
-                      <p className="text-xs font-extrabold tracking-[0.08em] uppercase text-ink/70">
-                        {group}
-                      </p>
-                      <div className="mt-2.5 space-y-2.5">
-                        {PERMISSIONS.filter((p) => p.group === group).map(
-                          (perm) => {
-                            const checked = draft.includes(perm.key);
-                            const disabled = isSuperAdmin || !canWrite;
-                            return (
-                              <label
-                                key={perm.key}
-                                className={`flex items-start gap-2.5 text-xs ${
-                                  disabled
-                                    ? "cursor-not-allowed opacity-80"
-                                    : "cursor-pointer"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  disabled={disabled}
-                                  checked={checked}
-                                  onChange={() =>
-                                    toggleRolePermission(role, perm.key)
-                                  }
-                                  className="mt-0.5 size-4 accent-ink"
-                                />
-                                <span>
-                                  <span className="block font-bold text-ink">
-                                    {perm.label}
-                                  </span>
-                                  <span className="block text-[11px] text-ink/65">
-                                    {perm.description}
-                                  </span>
+                    <p className="text-xs font-extrabold tracking-[0.08em] uppercase text-ink/70">
+                      {group}
+                    </p>
+                    <div className="mt-2.5 space-y-2.5">
+                      {PERMISSIONS.filter((p) => p.group === group).map(
+                        (perm) => {
+                          const checked = draft.permissions.includes(perm.key);
+                          const disabled = isSuperAdmin || !canWrite;
+                          return (
+                            <label
+                              key={perm.key}
+                              className={`flex items-start gap-2.5 text-xs ${
+                                disabled
+                                  ? "cursor-not-allowed opacity-80"
+                                  : "cursor-pointer"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                disabled={disabled}
+                                checked={checked}
+                                onChange={() =>
+                                  toggleRolePermission(role, perm.key)
+                                }
+                                className="mt-0.5 size-4 accent-ink"
+                              />
+                              <span>
+                                <span className="block font-bold text-ink">
+                                  {perm.label}
                                 </span>
-                              </label>
-                            );
-                          },
-                        )}
-                      </div>
+                                <span className="block text-[11px] text-ink/65">
+                                  {perm.description}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        },
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
 
-                {canWrite && !isSuperAdmin && (
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={isSaving}
-                        onClick={() =>
-                          setAllRolePermissions(role, [...ALL_PERMISSION_KEYS])
-                        }
-                        className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3.5 text-xs font-bold hover:bg-lime disabled:opacity-50"
-                      >
-                        Select all
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isSaving}
-                        onClick={() => setAllRolePermissions(role, [])}
-                        className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-3.5 text-xs font-bold hover:bg-sand disabled:opacity-50"
-                      >
-                        Clear all
-                      </button>
-                      {!role.isSystem &&
-                        (confirmDeleteSlug === role.slug ? (
-                          <button
-                            type="button"
-                            disabled={isDeleting}
-                            onClick={() => handleDeleteRole(role)}
-                            className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3.5 text-xs font-bold text-white disabled:opacity-60"
-                          >
-                            {isDeleting ? "Deleting…" : "Confirm delete role"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteSlug(role.slug)}
-                            className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink/35 bg-white px-3.5 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
-                          >
-                            Delete role
-                          </button>
-                        ))}
-                    </div>
-
+              {canWrite && !isSuperAdmin && (
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      disabled={isSaving || !hasChanges}
-                      onClick={() => handleSaveRolePermissions(role)}
-                      className="inline-flex h-10 cursor-pointer items-center rounded-full bg-ink px-5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                      disabled={isSaving}
+                      onClick={() =>
+                        updateDraft(role.slug, {
+                          permissions: [...ALL_PERMISSION_KEYS],
+                        })
+                      }
+                      className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3.5 text-xs font-bold hover:bg-lime disabled:opacity-50"
                     >
-                      {isSaving ? "Saving…" : "Save permissions"}
+                      Select all
                     </button>
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() =>
+                        updateDraft(role.slug, { permissions: [] })
+                      }
+                      className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-3.5 text-xs font-bold hover:bg-sand disabled:opacity-50"
+                    >
+                      Clear all
+                    </button>
+                    {!role.isSystem &&
+                      (confirmDeleteSlug === role.slug ? (
+                        <button
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={() => handleDeleteRole(role)}
+                          className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3.5 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {isDeleting ? "Deleting…" : "Confirm delete role"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteSlug(role.slug)}
+                          className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink/35 bg-white px-3.5 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                        >
+                          Delete role
+                        </button>
+                      ))}
                   </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      </section>
+
+                  <button
+                    type="button"
+                    disabled={isSaving || !hasChanges}
+                    onClick={() => handleSaveRole(role)}
+                    className="inline-flex h-10 cursor-pointer items-center rounded-full bg-ink px-5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {isSaving ? "Saving…" : "Save role"}
+                  </button>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }

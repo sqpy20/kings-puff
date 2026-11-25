@@ -22,11 +22,13 @@ import CatalogTab from "./catalog-tab";
 import ConfigTab, { type AdminConfigPayload } from "./config-tab";
 import InventoryTab from "./inventory-tab";
 import RolesTab from "./roles-tab";
+import UsersTab from "./users-tab";
 
 export type AdminTabId =
   | "overview"
   | "catalog"
   | "inventory"
+  | "users"
   | "roles"
   | "config";
 
@@ -34,7 +36,8 @@ const TABS: { id: AdminTabId; label: string; hint: string }[] = [
   { id: "overview", label: "Overview", hint: "Store KPIs & alerts" },
   { id: "catalog", label: "Catalog", hint: "Collections & taxonomy" },
   { id: "inventory", label: "Inventory", hint: "Products, pricing & stock" },
-  { id: "roles", label: "Roles & Access", hint: "Roles, users & permissions" },
+  { id: "users", label: "Users", hint: "Accounts, roles & access" },
+  { id: "roles", label: "Roles", hint: "Roles & permission matrix" },
   { id: "config", label: "Config", hint: "Database, auth & infra" },
 ];
 
@@ -71,6 +74,15 @@ function TabIcon({ id }: { id: AdminTabId }) {
         <svg {...shared}>
           <path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3Z" />
           <path d="M3 7.5 12 12l9-4.5M12 12v9" />
+        </svg>
+      );
+    case "users":
+      return (
+        <svg {...shared}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       );
     case "roles":
@@ -120,6 +132,12 @@ export default function AdminShell({
               ["inventory.read", "inventory.write"],
               user.isSuperAdmin,
             );
+          case "users":
+            return hasAnyPermission(
+              user.permissions,
+              ["users.read", "users.write"],
+              user.isSuperAdmin,
+            );
           case "roles":
             return hasAnyPermission(
               user.permissions,
@@ -167,9 +185,9 @@ export default function AdminShell({
     ["inventory.read", "overview.view"],
     user.isSuperAdmin,
   );
-  const canFetchRolesAndUsers = hasPermission(
+  const canFetchUsersAndRoles = hasAnyPermission(
     user.permissions,
-    "roles.read",
+    ["users.read", "roles.read"],
     user.isSuperAdmin,
   );
   const canFetchConfig = hasPermission(
@@ -188,6 +206,11 @@ export default function AdminShell({
     "inventory.write",
     user.isSuperAdmin,
   );
+  const canWriteUsers = hasPermission(
+    user.permissions,
+    "users.write",
+    user.isSuperAdmin,
+  );
   const canWriteRoles = hasPermission(
     user.permissions,
     "roles.write",
@@ -202,7 +225,7 @@ export default function AdminShell({
     if (
       !canFetchCatalogs &&
       !canFetchProducts &&
-      !canFetchRolesAndUsers &&
+      !canFetchUsersAndRoles &&
       !canFetchConfig
     ) {
       return {
@@ -235,12 +258,12 @@ export default function AdminShell({
               products?: Product[];
             } | null>)
           : Promise.resolve(null),
-        canFetchRolesAndUsers
+        canFetchUsersAndRoles
           ? (fetchJson("/api/admin/roles") as Promise<{
               roles?: AdminRole[];
             } | null>)
           : Promise.resolve(null),
-        canFetchRolesAndUsers
+        canFetchUsersAndRoles
           ? (fetchJson("/api/admin/users") as Promise<{
               users?: AdminUserRecord[];
             } | null>)
@@ -253,7 +276,7 @@ export default function AdminShell({
     if (
       (canFetchCatalogs && !catJson) ||
       (canFetchProducts && !prodJson) ||
-      (canFetchRolesAndUsers && (!rolesJson || !usersJson)) ||
+      (canFetchUsersAndRoles && (!rolesJson || !usersJson)) ||
       (canFetchConfig && !cfgJson)
     ) {
       return null;
@@ -269,7 +292,7 @@ export default function AdminShell({
   }, [
     canFetchCatalogs,
     canFetchProducts,
-    canFetchRolesAndUsers,
+    canFetchUsersAndRoles,
     canFetchConfig,
   ]);
 
@@ -367,7 +390,7 @@ export default function AdminShell({
 
         <nav
           aria-label="Admin sections"
-          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:mt-8 lg:grid-cols-1 lg:gap-2.5"
+          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-8 lg:grid-cols-1 lg:gap-2.5"
         >
           {allowedTabs.map((tab) => {
             const isActive = effectiveTab === tab.id;
@@ -376,9 +399,11 @@ export default function AdminShell({
                 ? String(catalogs.length)
                 : tab.id === "inventory" && canFetchProducts
                   ? String(products.length)
-                  : tab.id === "roles" && canFetchRolesAndUsers
-                    ? String(roles.length)
-                    : undefined;
+                  : tab.id === "users" && canFetchUsersAndRoles
+                    ? String(users.length)
+                    : tab.id === "roles" && canFetchUsersAndRoles
+                      ? String(roles.length)
+                      : undefined;
 
             return (
               <button
@@ -530,7 +555,7 @@ export default function AdminShell({
                 <strong className="text-ink">{user.email}</strong> (role:{" "}
                 <code>{user.rbacRoleName}</code>). Ask a{" "}
                 <strong>Super Admin</strong> to grant module permissions to your
-                role under <strong>Roles &amp; Access</strong>.
+                role under <strong>Roles</strong>.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
@@ -743,11 +768,18 @@ export default function AdminShell({
               onMutated={fetchAll}
               onFlash={onFlash}
             />
+          ) : effectiveTab === "users" ? (
+            <UsersTab
+              currentUser={user}
+              users={users}
+              roles={roles}
+              canWrite={canWriteUsers}
+              onMutated={fetchAll}
+              onFlash={onFlash}
+            />
           ) : effectiveTab === "roles" ? (
             <RolesTab
-              currentUser={user}
               roles={roles}
-              users={users}
               canWrite={canWriteRoles}
               onMutated={fetchAll}
               onFlash={onFlash}

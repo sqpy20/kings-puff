@@ -277,6 +277,8 @@ const SEED_ROLES = [
       "catalog.write",
       "inventory.read",
       "inventory.write",
+      "users.read",
+      "users.write",
       "roles.read",
       "roles.write",
       "config.view",
