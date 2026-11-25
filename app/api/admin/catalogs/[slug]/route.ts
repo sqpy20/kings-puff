@@ -1,4 +1,4 @@
-import { requireAdminApi } from "@/lib/auth/admin";
+import { requireAdminPermission } from "@/lib/auth/admin";
 import {
   catalogErrorResponse,
   deleteCatalog,
@@ -10,7 +10,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("catalog.write");
   if ("response" in gate) return gate.response;
 
   try {
@@ -27,7 +27,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("catalog.write");
   if ("response" in gate) return gate.response;
 
   try {

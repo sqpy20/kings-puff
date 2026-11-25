@@ -1,5 +1,12 @@
 import { cookies } from "next/headers";
 import "server-only";
+import {
+  type PermissionKey,
+  SYSTEM_ROLES,
+  hasAnyPermission,
+  hasPermission,
+} from "@/lib/rbac";
+import { getUserAccess } from "@/lib/rbac-data";
 import { auth } from "./server";
 
 export type AdminUser = {
@@ -7,6 +14,10 @@ export type AdminUser = {
   email: string;
   name: string | null;
   role: string;
+  rbacRole: string;
+  rbacRoleName: string;
+  isSuperAdmin: boolean;
+  permissions: PermissionKey[];
 };
 
 export type AdminSessionResult = {
@@ -15,13 +26,13 @@ export type AdminSessionResult = {
   user: AdminUser | null;
 };
 
-/** Checks whether a Better Auth role string contains the `"admin"` role. */
+/** Checks whether a Better Auth role string grants admin portal access. */
 export function isAdminRole(role: unknown): boolean {
   if (typeof role !== "string") return false;
   return role
     .split(",")
     .map((part) => part.trim().toLowerCase())
-    .includes("admin");
+    .some((part) => part === "admin" || part === "super_admin");
 }
 
 /** Ensures post-login redirects stay strictly inside the `/admin` portal. */
@@ -36,7 +47,7 @@ export function sanitizeAdminRedirect(raw: string | null | undefined): string {
   return trimmed;
 }
 
-/** Reads the verified Neon Auth session from cookies and checks admin role membership. */
+/** Reads the verified Neon Auth session from cookies and hydrates RBAC permissions. */
 export async function getAdminSession(): Promise<AdminSessionResult> {
   // Trigger the Next.js dynamic cookie boundary before Neon Auth's internal cache check.
   await cookies();
@@ -57,14 +68,33 @@ export async function getAdminSession(): Promise<AdminSessionResult> {
   }
 
   const role = typeof rawUser.role === "string" ? rawUser.role : "user";
+  const isAdmin = isAdminRole(role) && rawUser.banned !== true;
+
+  let access = {
+    roleSlug: isAdmin ? SYSTEM_ROLES.ADMIN : role,
+    roleName: isAdmin ? "Admin" : role,
+    isSuperAdmin: false,
+    permissions: [] as PermissionKey[],
+  };
+
+  if (isAdmin) {
+    try {
+      access = await getUserAccess(rawUser.id);
+    } catch {
+      // Fallback to zero permissions if RBAC tables are not yet initialized.
+    }
+  }
+
   const user: AdminUser = {
     id: rawUser.id,
     email: typeof rawUser.email === "string" ? rawUser.email : "",
     name: typeof rawUser.name === "string" ? rawUser.name : null,
     role,
+    rbacRole: access.roleSlug,
+    rbacRoleName: access.roleName,
+    isSuperAdmin: access.isSuperAdmin,
+    permissions: access.permissions,
   };
-
-  const isAdmin = isAdminRole(role) && rawUser.banned !== true;
 
   return {
     authenticated: true,
@@ -92,4 +122,48 @@ export async function requireAdminApi(): Promise<
     };
   }
   return { user: session.user };
+}
+
+/** Authorizes an admin API handler requiring a specific RBAC permission. */
+export async function requireAdminPermission(
+  permission: PermissionKey,
+): Promise<{ user: AdminUser } | { response: Response }> {
+  const gate = await requireAdminApi();
+  if ("response" in gate) return gate;
+
+  if (!hasPermission(gate.user.permissions, permission, gate.user.isSuperAdmin)) {
+    return {
+      response: Response.json(
+        { error: `Forbidden: missing permission "${permission}"` },
+        { status: 403 },
+      ),
+    };
+  }
+  return gate;
+}
+
+/** Authorizes an admin API handler requiring at least one of the specified permissions. */
+export async function requireAdminAnyPermission(
+  permissions: readonly PermissionKey[],
+): Promise<{ user: AdminUser } | { response: Response }> {
+  const gate = await requireAdminApi();
+  if ("response" in gate) return gate;
+
+  if (
+    !hasAnyPermission(
+      gate.user.permissions,
+      permissions,
+      gate.user.isSuperAdmin,
+    )
+  ) {
+    return {
+      response: Response.json(
+        {
+          error: `Forbidden: requires one of [${permissions.join(", ")}]`,
+        },
+        { status: 403 },
+      ),
+    };
+  }
+  return gate;
 }

@@ -1,4 +1,4 @@
-import { requireAdminApi } from "@/lib/auth/admin";
+import { requireAdminPermission } from "@/lib/auth/admin";
 import {
   isCloudinaryConfigured,
   uploadImageToCloudinary,
@@ -16,7 +16,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 /** Protected admin endpoint that uploads a product image directly to Cloudinary. */
 export async function POST(request: Request) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("inventory.write");
   if ("response" in gate) return gate.response;
 
   if (!isCloudinaryConfigured()) {

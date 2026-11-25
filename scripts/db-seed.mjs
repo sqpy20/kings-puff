@@ -323,6 +323,81 @@ async function main() {
         ON public.products (active, sort_order, created_at);
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.admin_roles (
+        slug TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
+        is_system BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.admin_user_roles (
+        user_id UUID PRIMARY KEY,
+        role_slug TEXT NOT NULL REFERENCES public.admin_roles(slug) ON UPDATE CASCADE ON DELETE RESTRICT,
+        assigned_by UUID,
+        assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    const allPermissions = [
+      "overview.view",
+      "catalog.read",
+      "catalog.write",
+      "inventory.read",
+      "inventory.write",
+      "roles.read",
+      "roles.write",
+      "config.view",
+    ];
+
+    await client.query(
+      `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+       VALUES ($1, $2, $3, $4::jsonb, true)
+       ON CONFLICT (slug) DO UPDATE SET
+         permissions = EXCLUDED.permissions,
+         is_system = true`,
+      [
+        "super_admin",
+        "Super Admin",
+        "Full unrestricted access across all storefront modules, RBAC, and infrastructure.",
+        JSON.stringify(allPermissions),
+      ],
+    );
+
+    await client.query(
+      `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+       VALUES ($1, $2, $3, $4::jsonb, true)
+       ON CONFLICT (slug) DO NOTHING`,
+      [
+        "admin",
+        "Admin",
+        "Standard administrator role with configurable module permissions.",
+        JSON.stringify([]),
+      ],
+    );
+
+    const roleAssignments = [
+      { email: "admin@momoeliquidz.co.uk", roleSlug: "super_admin" },
+      { email: "manager@momoeliquidz.co.uk", roleSlug: "admin" },
+    ];
+
+    for (const assignment of roleAssignments) {
+      await client.query(
+        `INSERT INTO public.admin_user_roles (user_id, role_slug)
+         SELECT id, $2
+         FROM neon_auth."user"
+         WHERE lower(email) = lower($1)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [assignment.email, assignment.roleSlug],
+      );
+    }
+
     for (const c of SEED_CATALOGS) {
       await client.query(
         `INSERT INTO public.catalogs (slug, label, short, description, color, sort_order)

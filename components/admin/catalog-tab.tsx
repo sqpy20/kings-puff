@@ -35,10 +35,12 @@ function slugify(value: string): string {
 
 export default function CatalogTab({
   catalogs,
+  canWrite = true,
   onMutated,
   onFlash,
 }: {
   catalogs: Category[];
+  canWrite?: boolean;
   onMutated: () => Promise<void>;
   onFlash: (kind: "success" | "error", text: string) => void;
 }) {
@@ -167,16 +169,25 @@ export default function CatalogTab({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={formOpen ? () => setFormOpen(false) : openCreate}
-          className="inline-flex h-11 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-lime px-5 text-sm font-bold text-ink shadow-[3px_3px_0_var(--color-ink)] transition hover:translate-y-[-1px]"
-        >
-          {formOpen ? "Close editor" : "+ New catalog"}
-        </button>
+        <div className="flex items-center gap-2.5">
+          {!canWrite && (
+            <span className="rounded-full border-2 border-ink bg-sand px-3.5 py-1 text-xs font-extrabold uppercase">
+              Read-only
+            </span>
+          )}
+          {canWrite && (
+            <button
+              type="button"
+              onClick={formOpen ? () => setFormOpen(false) : openCreate}
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-lime px-5 text-sm font-bold text-ink shadow-[3px_3px_0_var(--color-ink)] transition hover:translate-y-[-1px]"
+            >
+              {formOpen ? "Close editor" : "+ New catalog"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {formOpen && (
+      {canWrite && formOpen && (
         <form
           onSubmit={handleSubmit}
           className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
@@ -382,13 +393,15 @@ export default function CatalogTab({
                     </td>
                     <td className="py-4 text-right">
                       <div className="inline-flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(c)}
-                          className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3 text-xs font-bold hover:bg-lime"
-                        >
-                          Edit
-                        </button>
+                        {canWrite && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(c)}
+                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3 text-xs font-bold hover:bg-lime"
+                          >
+                            Edit
+                          </button>
+                        )}
                         <a
                           href={`/shop/${c.slug}`}
                           target="_blank"
@@ -397,23 +410,25 @@ export default function CatalogTab({
                         >
                           Store ↗
                         </a>
-                        {confirmDelete === c.slug ? (
-                          <button
-                            type="button"
-                            disabled={isDeleting}
-                            onClick={() => handleDelete(c.slug)}
-                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3 text-xs font-bold text-white disabled:opacity-60"
-                          >
-                            {isDeleting ? "Deleting…" : "Confirm delete"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDelete(c.slug)}
-                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
-                          >
-                            Delete
-                          </button>
+                        {canWrite && (
+                          confirmDelete === c.slug ? (
+                            <button
+                              type="button"
+                              disabled={isDeleting}
+                              onClick={() => handleDelete(c.slug)}
+                              className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3 text-xs font-bold text-white disabled:opacity-60"
+                            >
+                              {isDeleting ? "Deleting…" : "Confirm delete"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDelete(c.slug)}
+                              className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                            >
+                              Delete
+                            </button>
+                          )
                         )}
                       </div>
                     </td>

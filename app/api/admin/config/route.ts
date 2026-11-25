@@ -1,4 +1,4 @@
-import { requireAdminApi } from "@/lib/auth/admin";
+import { requireAdminPermission } from "@/lib/auth/admin";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/catalog";
 import {
   getCloudinaryCloudName,
@@ -10,7 +10,7 @@ import { SITE_LOCALE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 /** Returns admin session details, live Lakebase DB metrics, media config, and runtime infra metadata. */
 export async function GET() {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("config.view");
   if ("response" in gate) return gate.response;
 
   const database = await getAdminDbStats();
@@ -49,6 +49,8 @@ export async function GET() {
             "/api/admin/session",
             "/api/admin/catalogs",
             "/api/admin/products",
+            "/api/admin/roles",
+            "/api/admin/users",
             "/api/admin/upload",
             "/api/admin/config",
           ],
