@@ -26,7 +26,7 @@ export default function Nav() {
             <NavLinks />
           </Suspense>
           <div className="flex items-center gap-5 md:gap-7.5 xl:mr-2.25">
-            <button aria-label="Search" type="button">
+            <Link href="/shop#search" aria-label="Search products">
               <svg
                 width="22"
                 height="22"
@@ -35,11 +35,12 @@ export default function Nav() {
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
+                aria-hidden="true"
               >
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.6-3.6" />
               </svg>
-            </button>
+            </Link>
             <CartLink />
             <MobileNav />
           </div>

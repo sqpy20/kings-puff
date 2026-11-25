@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {
   type Category,
   FREE_SHIPPING_THRESHOLD,
+  LOW_STOCK_THRESHOLD,
   type Product,
 } from "./catalog";
 import { BRAND_LOGO_URL } from "./media";
@@ -70,6 +71,10 @@ export function buildMetadata({
   image,
   imageAlt,
   noIndex = false,
+  type = "website",
+  publishedTime,
+  modifiedTime,
+  other,
 }: {
   title?: string;
   description: string;
@@ -78,6 +83,10 @@ export function buildMetadata({
   image?: string;
   imageAlt?: string;
   noIndex?: boolean;
+  type?: "website" | "article";
+  publishedTime?: string;
+  modifiedTime?: string;
+  other?: Record<string, string>;
 }): Metadata {
   const resolvedTitle = title
     ? `${title} · ${SITE_NAME}`
@@ -95,14 +104,22 @@ export function buildMetadata({
     ...(title ? { title } : {}),
     description,
     ...(keywords ? { keywords } : {}),
-    alternates: { canonical: path },
+    alternates: {
+      canonical: path,
+      languages: {
+        "en-GB": path,
+        "x-default": path,
+      },
+    },
     openGraph: {
       title: resolvedTitle,
       description,
       url: path,
       siteName: SITE_NAME,
       locale: SITE_LOCALE,
-      type: "website",
+      type,
+      ...(type === "article" && publishedTime ? { publishedTime } : {}),
+      ...(type === "article" && modifiedTime ? { modifiedTime } : {}),
       ...(ogImages ? { images: ogImages } : {}),
     },
     twitter: {
@@ -112,6 +129,7 @@ export function buildMetadata({
       site: SITE_TWITTER,
       ...(ogImages ? { images: ogImages } : {}),
     },
+    ...(other ? { other } : {}),
     ...(noIndex
       ? {
           robots: {
@@ -126,12 +144,30 @@ export function buildMetadata({
 export function organizationJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": ["Organization", "OnlineStore"],
     "@id": `${SITE_URL}/#organization`,
     name: SITE_NAME,
     url: SITE_URL,
-    logo: BRAND_LOGO_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: BRAND_LOGO_URL,
+    },
+    description: SITE_DESCRIPTION,
     sameAs: SOCIAL_PROFILES,
+    areaServed: {
+      "@type": "Country",
+      name: "United Kingdom",
+    },
+    currenciesAccepted: "GBP",
+    priceRange: "£4.99 - £60.00",
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: "GB",
+      returnPolicyCategory:
+        "https://schema.org/MerchantReturnFiniteReturnWindow",
+      merchantReturnDays: 14,
+      returnMethod: "https://schema.org/ReturnByMail",
+    },
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer service",
@@ -150,6 +186,14 @@ export function websiteJsonLd(): Record<string, unknown> {
     url: SITE_URL,
     inLanguage: "en-GB",
     publisher: { "@id": `${SITE_URL}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/shop?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
   };
 }
 
@@ -170,19 +214,29 @@ export function breadcrumbJsonLd(
 
 export function productJsonLd(product: Product): Record<string, unknown> {
   const url = absoluteUrl(`/products/${product.id}`);
+  const availability =
+    product.stockQty <= 0
+      ? "https://schema.org/OutOfStock"
+      : product.stockQty <= LOW_STOCK_THRESHOLD
+        ? "https://schema.org/LimitedAvailability"
+        : "https://schema.org/InStock";
+
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${url}#product`,
     name: product.name,
     sku: product.id,
+    mpn: product.id,
+    url,
+    mainEntityOfPage: url,
     description: product.description,
     image: [absoluteUrl(product.image)],
     brand: {
       "@type": "Brand",
       name: SITE_NAME,
     },
-    category: product.category,
+    category: product.categoryLabel ?? product.category,
     additionalProperty: product.details.map((d) => ({
       "@type": "PropertyValue",
       name: d.label,
@@ -193,11 +247,21 @@ export function productJsonLd(product: Product): Record<string, unknown> {
       url,
       priceCurrency: "GBP",
       price: product.price.toFixed(2),
-      availability: "https://schema.org/InStock",
+      priceValidUntil: "2027-12-31",
+      availability,
       itemCondition: "https://schema.org/NewCondition",
       seller: {
         "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
         name: SITE_NAME,
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "GB",
+        returnPolicyCategory:
+          "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 14,
+        returnMethod: "https://schema.org/ReturnByMail",
       },
       shippingDetails: {
         "@type": "OfferShippingDetails",
@@ -209,6 +273,21 @@ export function productJsonLd(product: Product): Record<string, unknown> {
           "@type": "MonetaryAmount",
           value: product.price >= FREE_SHIPPING_THRESHOLD ? "0.00" : "3.99",
           currency: "GBP",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 1,
+            maxValue: 2,
+            unitCode: "DAY",
+          },
         },
       },
     },
@@ -226,6 +305,7 @@ export function collectionJsonLd(
     name: category ? `${category.label} · ${SITE_NAME}` : `Products · ${SITE_NAME}`,
     description: category?.description ?? SITE_DESCRIPTION,
     url: absoluteUrl(path),
+    isPartOf: { "@id": `${SITE_URL}/#website` },
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: list.length,
@@ -254,5 +334,53 @@ export function faqJsonLd(
         text: item.a,
       },
     })),
+  };
+}
+
+export function articleJsonLd({
+  headline,
+  description,
+  path,
+  image,
+  datePublished,
+  dateModified,
+  keywords,
+}: {
+  headline: string;
+  description: string;
+  path: string;
+  image: string;
+  datePublished: string;
+  dateModified: string;
+  keywords?: string[];
+}): Record<string, unknown> {
+  const url = absoluteUrl(path);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${url}#article`,
+    headline,
+    description,
+    url,
+    mainEntityOfPage: url,
+    image: [absoluteUrl(image)],
+    datePublished,
+    dateModified,
+    inLanguage: "en-GB",
+    ...(keywords && keywords.length > 0 ? { keywords: keywords.join(", ") } : {}),
+    author: {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      logo: {
+        "@type": "ImageObject",
+        url: BRAND_LOGO_URL,
+      },
+    },
   };
 }

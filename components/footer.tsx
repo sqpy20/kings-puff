@@ -5,6 +5,7 @@ type FooterLink = { label: string; href: string };
 
 const help: FooterLink[] = [
   { label: "FAQ", href: "/faq" },
+  { label: "UK Buyer Guides", href: "/guides" },
   { label: "Shipping & availability", href: "/faq" },
   { label: "About & quality", href: "/about" },
   { label: "Press & Partners", href: "/press" },
@@ -83,7 +84,7 @@ export default async function Footer() {
             Privacy
           </Link>{" "}
           ·{" "}
-          <Link href="#" className="underline underline-offset-2">
+          <Link href="/faq" className="underline underline-offset-2">
             Shipping policy
           </Link>
         </p>
