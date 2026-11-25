@@ -67,6 +67,16 @@ async function main() {
   const name = String(
     cli.name ?? process.env.ADMIN_NAME ?? (email.split("@")[0] || "Store Admin"),
   ).trim();
+  const rbacRoleSlug = String(cli.role ?? process.env.ADMIN_ROLE ?? "admin")
+    .trim()
+    .toLowerCase();
+
+  if (!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(rbacRoleSlug)) {
+    console.error(
+      "Error: --role must be 2–48 lowercase letters, digits, hyphens, or underscores.",
+    );
+    process.exit(1);
+  }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     console.error("Error: provide a valid --email or ADMIN_EMAIL.");
@@ -139,11 +149,37 @@ async function main() {
     }
 
     const adminUser = result.rows[0];
+
+    const rbacTableCheck = await pool.query(
+      `SELECT to_regclass('public.admin_roles') IS NOT NULL AS has_roles`,
+    );
+    let assignedRbacRole = null;
+    if (rbacTableCheck.rows[0]?.has_roles) {
+      const roleExists = await pool.query(
+        `SELECT slug FROM public.admin_roles WHERE slug = $1`,
+        [rbacRoleSlug],
+      );
+      if (roleExists.rowCount === 0) {
+        console.error(`Error: RBAC role "${rbacRoleSlug}" does not exist in public.admin_roles.`);
+        process.exit(1);
+      }
+      await pool.query(
+        `INSERT INTO public.admin_user_roles (user_id, role_slug, updated_at)
+         VALUES ($1::uuid, $2, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET
+           role_slug = EXCLUDED.role_slug,
+           updated_at = NOW()`,
+        [adminUser.id, rbacRoleSlug],
+      );
+      assignedRbacRole = rbacRoleSlug;
+    }
+
     console.log("Admin account ready:", {
       id: adminUser.id,
       email: adminUser.email,
       name: adminUser.name,
       role: adminUser.role,
+      ...(assignedRbacRole ? { rbacRole: assignedRbacRole } : {}),
     });
   } finally {
     await pool.end();

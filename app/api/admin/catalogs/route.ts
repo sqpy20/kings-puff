@@ -1,4 +1,7 @@
-import { requireAdminApi } from "@/lib/auth/admin";
+import {
+  requireAdminAnyPermission,
+  requireAdminPermission,
+} from "@/lib/auth/admin";
 import {
   catalogErrorResponse,
   createCatalog,
@@ -7,7 +10,11 @@ import {
 } from "@/lib/catalog-data";
 
 export async function GET() {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminAnyPermission([
+    "catalog.read",
+    "inventory.read",
+    "overview.view",
+  ]);
   if ("response" in gate) return gate.response;
 
   const catalogs = await listAdminCatalogs();
@@ -15,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("catalog.write");
   if ("response" in gate) return gate.response;
 
   try {

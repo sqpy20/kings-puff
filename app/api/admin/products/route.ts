@@ -1,5 +1,8 @@
 import type { NextRequest } from "next/server";
-import { requireAdminApi } from "@/lib/auth/admin";
+import {
+  requireAdminAnyPermission,
+  requireAdminPermission,
+} from "@/lib/auth/admin";
 import {
   catalogErrorResponse,
   createProduct,
@@ -8,7 +11,10 @@ import {
 } from "@/lib/catalog-data";
 
 export async function GET(request: NextRequest) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminAnyPermission([
+    "inventory.read",
+    "overview.view",
+  ]);
   if ("response" in gate) return gate.response;
 
   const { searchParams } = request.nextUrl;
@@ -20,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("inventory.write");
   if ("response" in gate) return gate.response;
 
   try {

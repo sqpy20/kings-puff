@@ -57,11 +57,13 @@ function makeEmptyForm(defaultCategory: string, nextOrder: number): ProductFormS
 export default function InventoryTab({
   catalogs,
   products,
+  canWrite = true,
   onMutated,
   onFlash,
 }: {
   catalogs: Category[];
   products: Product[];
+  canWrite?: boolean;
   onMutated: () => Promise<void>;
   onFlash: (kind: "success" | "error", text: string) => void;
 }) {
@@ -341,16 +343,25 @@ export default function InventoryTab({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={formOpen ? () => setFormOpen(false) : openCreate}
-          className="inline-flex h-11 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-lime px-5 text-sm font-bold text-ink shadow-[3px_3px_0_var(--color-ink)] transition hover:translate-y-[-1px]"
-        >
-          {formOpen ? "Close editor" : "+ Add product"}
-        </button>
+        <div className="flex items-center gap-2.5">
+          {!canWrite && (
+            <span className="rounded-full border-2 border-ink bg-sand px-3.5 py-1 text-xs font-extrabold uppercase">
+              Read-only
+            </span>
+          )}
+          {canWrite && (
+            <button
+              type="button"
+              onClick={formOpen ? () => setFormOpen(false) : openCreate}
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-lime px-5 text-sm font-bold text-ink shadow-[3px_3px_0_var(--color-ink)] transition hover:translate-y-[-1px]"
+            >
+              {formOpen ? "Close editor" : "+ Add product"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {formOpen && (
+      {canWrite && formOpen && (
         <form
           onSubmit={handleSubmit}
           className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
@@ -796,7 +807,7 @@ export default function InventoryTab({
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
-                          disabled={isBusy || product.stockQty <= 0}
+                          disabled={!canWrite || isBusy || product.stockQty <= 0}
                           aria-label={`Decrease stock for ${product.name}`}
                           onClick={() =>
                             patchProductQuick(
@@ -805,7 +816,7 @@ export default function InventoryTab({
                               `Decreased stock for "${product.name}" to ${Math.max(0, product.stockQty - 1)}.`,
                             )
                           }
-                          className="grid size-7 cursor-pointer place-items-center rounded-lg border-2 border-ink bg-cream font-bold disabled:opacity-40"
+                          className="grid size-7 cursor-pointer place-items-center rounded-lg border-2 border-ink bg-cream font-bold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           −
                         </button>
@@ -818,7 +829,7 @@ export default function InventoryTab({
                         </span>
                         <button
                           type="button"
-                          disabled={isBusy}
+                          disabled={!canWrite || isBusy}
                           aria-label={`Increase stock for ${product.name}`}
                           onClick={() =>
                             patchProductQuick(
@@ -827,7 +838,7 @@ export default function InventoryTab({
                               `Increased stock for "${product.name}" to ${product.stockQty + 1}.`,
                             )
                           }
-                          className="grid size-7 cursor-pointer place-items-center rounded-lg border-2 border-ink bg-cream font-bold disabled:opacity-40"
+                          className="grid size-7 cursor-pointer place-items-center rounded-lg border-2 border-ink bg-cream font-bold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           +
                         </button>
@@ -837,7 +848,7 @@ export default function InventoryTab({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
-                          disabled={isBusy}
+                          disabled={!canWrite || isBusy}
                           onClick={() =>
                             patchProductQuick(
                               product,
@@ -845,7 +856,7 @@ export default function InventoryTab({
                               `${product.active ? "Unpublished" : "Published"} "${product.name}".`,
                             )
                           }
-                          className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-xs font-bold ${
+                          className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-70 ${
                             product.active
                               ? "bg-teal text-ink"
                               : "bg-sand text-ink/70"
@@ -862,13 +873,15 @@ export default function InventoryTab({
                     </td>
                     <td className="py-3.5 text-right">
                       <div className="inline-flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(product)}
-                          className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3 text-xs font-bold hover:bg-lime"
-                        >
-                          Edit
-                        </button>
+                        {canWrite && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(product)}
+                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3 text-xs font-bold hover:bg-lime"
+                          >
+                            Edit
+                          </button>
+                        )}
                         {product.active && (
                           <a
                             href={`/products/${product.id}`}
@@ -879,23 +892,25 @@ export default function InventoryTab({
                             View ↗
                           </a>
                         )}
-                        {confirmDelete === product.id ? (
-                          <button
-                            type="button"
-                            disabled={isBusy}
-                            onClick={() => handleDelete(product)}
-                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3 text-xs font-bold text-white"
-                          >
-                            Confirm
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDelete(product.id)}
-                            className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
-                          >
-                            Delete
-                          </button>
+                        {canWrite && (
+                          confirmDelete === product.id ? (
+                            <button
+                              type="button"
+                              disabled={isBusy}
+                              onClick={() => handleDelete(product)}
+                              className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3 text-xs font-bold text-white"
+                            >
+                              Confirm
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDelete(product.id)}
+                              className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                            >
+                              Delete
+                            </button>
+                          )
                         )}
                       </div>
                     </td>

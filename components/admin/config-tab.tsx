@@ -3,6 +3,7 @@
 import type { AdminUser } from "@/lib/auth/admin";
 import { formatPrice } from "@/lib/catalog";
 import type { AdminDbStats } from "@/lib/db";
+import type { PaymentSettings } from "@/lib/payment";
 
 export type AdminConfigPayload = {
   user: AdminUser;
@@ -21,6 +22,7 @@ export type AdminConfigPayload = {
     from: string | null;
     contactTo: string;
   };
+  paymentSettings: PaymentSettings;
   storefront: {
     siteName: string;
     siteUrl: string;
@@ -306,6 +308,71 @@ export default function ConfigTab({
               </div>
             </section>
           </div>
+
+          <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-extrabold">
+                  Payment &amp; Checkout Content Summary
+                </h3>
+                <p className="mt-0.5 text-xs text-ink/70">
+                  Manage Order Received copy, Gift Card instructions, UK bank
+                  details, and crypto wallets in the <strong>Payments</strong>{" "}
+                  tab.
+                </p>
+              </div>
+              <span className="rounded-full border-2 border-ink bg-lime px-3 py-0.5 text-xs font-extrabold uppercase">
+                Managed in Payments Tab
+              </span>
+            </div>
+
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl bg-cream p-3.5">
+                <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
+                  Support Email
+                </dt>
+                <dd className="mt-1 truncate font-bold">
+                  {config.paymentSettings.supportEmail}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-cream p-3.5">
+                <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
+                  Accepted Gift Cards
+                </dt>
+                <dd className="mt-1 font-bold">
+                  {config.paymentSettings.giftCardAcceptedCards.length} option(s)
+                </dd>
+              </div>
+              <div className="rounded-xl bg-cream p-3.5">
+                <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
+                  Bank Transfer Mode
+                </dt>
+                <dd className="mt-1 font-bold">
+                  {config.paymentSettings.bankAccountNumber ||
+                  config.paymentSettings.bankSortCode
+                    ? "On-page UK details"
+                    : "Emailed manually"}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-cream p-3.5">
+                <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
+                  Crypto Wallets
+                </dt>
+                <dd className="mt-1 font-bold">
+                  {
+                    [
+                      config.paymentSettings.btcAddress,
+                      config.paymentSettings.ethAddress,
+                      config.paymentSettings.solAddress,
+                      config.paymentSettings.usdtAddress,
+                    ].filter(Boolean).length
+                  }{" "}
+                  / 4 configured · {config.paymentSettings.cryptoExpiryMinutes}{" "}
+                  min
+                </dd>
+              </div>
+            </dl>
+          </section>
 
           <section className="rounded-[24px] border-2 border-ink bg-sand p-6">
             <h3 className="text-lg font-extrabold">Infrastructure CLI Commands</h3>

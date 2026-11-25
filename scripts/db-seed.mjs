@@ -265,6 +265,45 @@ const SEED_PRODUCTS = [
   },
 ];
 
+const SEED_ROLES = [
+  {
+    slug: "super_admin",
+    name: "Super Admin",
+    description:
+      "Full unrestricted access across store overview, catalogs, inventory, roles & permissions, and infrastructure configuration.",
+    permissions: [
+      "overview.view",
+      "orders.read",
+      "orders.write",
+      "payments.read",
+      "payments.write",
+      "catalog.read",
+      "catalog.write",
+      "inventory.read",
+      "inventory.write",
+      "users.read",
+      "users.write",
+      "roles.read",
+      "roles.write",
+      "config.view",
+    ],
+    is_system: true,
+  },
+  {
+    slug: "admin",
+    name: "Admin",
+    description:
+      "Standard admin account. Permissions must be explicitly granted by a Super Admin.",
+    permissions: [],
+    is_system: true,
+  },
+];
+
+const INITIAL_USER_ROLE_MAP = [
+  { email: "admin@momoeliquidz.co.uk", role_slug: "super_admin" },
+  { email: "manager@momoeliquidz.co.uk", role_slug: "admin" },
+];
+
 async function main() {
   loadLocalEnv();
 
@@ -323,6 +362,100 @@ async function main() {
         ON public.products (active, sort_order, created_at);
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.admin_roles (
+        slug TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
+        is_system BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.admin_user_roles (
+        user_id UUID PRIMARY KEY,
+        role_slug TEXT NOT NULL REFERENCES public.admin_roles(slug) ON UPDATE CASCADE ON DELETE RESTRICT,
+        assigned_by UUID,
+        assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE SEQUENCE IF NOT EXISTS public.orders_number_seq START WITH 1001;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.orders (
+        id BIGSERIAL PRIMARY KEY,
+        order_number INTEGER NOT NULL UNIQUE DEFAULT nextval('public.orders_number_seq'),
+        access_token TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending_payment',
+        payment_method TEXT NOT NULL,
+        shipping_method TEXT NOT NULL,
+        shipping_label TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL DEFAULT '',
+        shipping_address JSONB NOT NULL,
+        billing_address JSONB NOT NULL,
+        same_billing BOOLEAN NOT NULL DEFAULT true,
+        items JSONB NOT NULL,
+        subtotal_pence INTEGER NOT NULL,
+        shipping_pence INTEGER NOT NULL,
+        total_pence INTEGER NOT NULL,
+        order_note TEXT NOT NULL DEFAULT '',
+        crypto_currency TEXT,
+        crypto_amount TEXT,
+        crypto_address TEXT,
+        crypto_rate_gbp NUMERIC(18, 6),
+        crypto_expires_at TIMESTAMPTZ,
+        attribution JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_orders_created_at
+        ON public.orders (created_at DESC);
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.payment_settings (
+        id TEXT PRIMARY KEY,
+        support_email TEXT NOT NULL DEFAULT 'support@momoeliquidz.co.uk',
+        btc_address TEXT NOT NULL DEFAULT '',
+        eth_address TEXT NOT NULL DEFAULT '',
+        sol_address TEXT NOT NULL DEFAULT '',
+        usdt_address TEXT NOT NULL DEFAULT '',
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE public.payment_settings
+        ADD COLUMN IF NOT EXISTS order_received_subtitle TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_checkout_hint TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_intro TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_accepted_cards JSONB NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS gift_card_instructions TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_closing TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_checkout_hint TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_instructions TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_account_name TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_sort_code TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_account_number TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_subtitle TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_important_notice TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_expiry_minutes INTEGER NOT NULL DEFAULT 120;
+    `);
+
     for (const c of SEED_CATALOGS) {
       await client.query(
         `INSERT INTO public.catalogs (slug, label, short, description, color, sort_order)
@@ -358,12 +491,57 @@ async function main() {
       );
     }
 
+    for (const role of SEED_ROLES) {
+      if (role.slug === "super_admin") {
+        await client.query(
+          `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+           VALUES ($1, $2, $3, $4::jsonb, $5)
+           ON CONFLICT (slug) DO UPDATE SET
+             permissions = EXCLUDED.permissions,
+             is_system = true`,
+          [
+            role.slug,
+            role.name,
+            role.description,
+            JSON.stringify(role.permissions),
+            role.is_system,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+           VALUES ($1, $2, $3, $4::jsonb, $5)
+           ON CONFLICT (slug) DO NOTHING`,
+          [
+            role.slug,
+            role.name,
+            role.description,
+            JSON.stringify(role.permissions),
+            role.is_system,
+          ],
+        );
+      }
+    }
+
+    for (const mapping of INITIAL_USER_ROLE_MAP) {
+      await client.query(
+        `INSERT INTO public.admin_user_roles (user_id, role_slug)
+         SELECT id, $2
+         FROM neon_auth."user"
+         WHERE lower(email) = lower($1)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [mapping.email, mapping.role_slug],
+      );
+    }
+
     await client.query("COMMIT");
 
     const counts = await client.query(`
       SELECT
         (SELECT COUNT(*)::int FROM public.catalogs) AS catalog_count,
-        (SELECT COUNT(*)::int FROM public.products) AS product_count
+        (SELECT COUNT(*)::int FROM public.products) AS product_count,
+        (SELECT COUNT(*)::int FROM public.admin_roles) AS role_count,
+        (SELECT COUNT(*)::int FROM public.admin_user_roles) AS user_role_count
     `);
     console.log("Database schema & seed ready:", counts.rows[0]);
   } catch (err) {

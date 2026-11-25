@@ -1,4 +1,4 @@
-import { requireAdminApi } from "@/lib/auth/admin";
+import { requireAdminPermission } from "@/lib/auth/admin";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/catalog";
 import {
   getCloudinaryCloudName,
@@ -6,14 +6,18 @@ import {
 } from "@/lib/cloudinary";
 import { getAdminDbStats } from "@/lib/db";
 import { getMailSummary } from "@/lib/mail";
+import { getPaymentSettings } from "@/lib/orders";
 import { SITE_LOCALE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 /** Returns admin session details, live Lakebase DB metrics, media config, and runtime infra metadata. */
 export async function GET() {
-  const gate = await requireAdminApi();
+  const gate = await requireAdminPermission("config.view");
   if ("response" in gate) return gate.response;
 
-  const database = await getAdminDbStats();
+  const [database, paymentSettings] = await Promise.all([
+    getAdminDbStats(),
+    getPaymentSettings(),
+  ]);
 
   return Response.json(
     {
@@ -25,6 +29,7 @@ export async function GET() {
         cloudName: getCloudinaryCloudName(),
       },
       mail: getMailSummary(),
+      paymentSettings,
       storefront: {
         siteName: SITE_NAME,
         siteUrl: SITE_URL,
@@ -43,14 +48,24 @@ export async function GET() {
             "GET /api/catalogs/[slug]",
             "GET /api/products",
             "GET /api/products/[id]",
+            "GET /api/payment-content",
             "POST /api/contact",
+            "POST /api/orders",
+            "GET /api/orders/[token]",
+            "PATCH /api/orders/[token]",
           ],
           admin: [
             "/api/admin/session",
+            "/api/admin/orders",
+            "/api/admin/orders/[id]",
             "/api/admin/catalogs",
             "/api/admin/products",
+            "/api/admin/users",
+            "/api/admin/users/[id]",
+            "/api/admin/roles",
             "/api/admin/upload",
             "/api/admin/config",
+            "/api/admin/payment-settings",
           ],
         },
       },
