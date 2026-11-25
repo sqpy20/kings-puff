@@ -265,6 +265,39 @@ const SEED_PRODUCTS = [
   },
 ];
 
+const SEED_ROLES = [
+  {
+    slug: "super_admin",
+    name: "Super Admin",
+    description:
+      "Full unrestricted access across store overview, catalogs, inventory, roles & permissions, and infrastructure configuration.",
+    permissions: [
+      "overview.view",
+      "catalog.read",
+      "catalog.write",
+      "inventory.read",
+      "inventory.write",
+      "roles.read",
+      "roles.write",
+      "config.view",
+    ],
+    is_system: true,
+  },
+  {
+    slug: "admin",
+    name: "Admin",
+    description:
+      "Standard admin account. Permissions must be explicitly granted by a Super Admin.",
+    permissions: [],
+    is_system: true,
+  },
+];
+
+const INITIAL_USER_ROLE_MAP = [
+  { email: "admin@momoeliquidz.co.uk", role_slug: "super_admin" },
+  { email: "manager@momoeliquidz.co.uk", role_slug: "admin" },
+];
+
 async function main() {
   loadLocalEnv();
 
@@ -345,59 +378,6 @@ async function main() {
       );
     `);
 
-    const allPermissions = [
-      "overview.view",
-      "catalog.read",
-      "catalog.write",
-      "inventory.read",
-      "inventory.write",
-      "roles.read",
-      "roles.write",
-      "config.view",
-    ];
-
-    await client.query(
-      `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
-       VALUES ($1, $2, $3, $4::jsonb, true)
-       ON CONFLICT (slug) DO UPDATE SET
-         permissions = EXCLUDED.permissions,
-         is_system = true`,
-      [
-        "super_admin",
-        "Super Admin",
-        "Full unrestricted access across all storefront modules, RBAC, and infrastructure.",
-        JSON.stringify(allPermissions),
-      ],
-    );
-
-    await client.query(
-      `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
-       VALUES ($1, $2, $3, $4::jsonb, true)
-       ON CONFLICT (slug) DO NOTHING`,
-      [
-        "admin",
-        "Admin",
-        "Standard administrator role with configurable module permissions.",
-        JSON.stringify([]),
-      ],
-    );
-
-    const roleAssignments = [
-      { email: "admin@momoeliquidz.co.uk", roleSlug: "super_admin" },
-      { email: "manager@momoeliquidz.co.uk", roleSlug: "admin" },
-    ];
-
-    for (const assignment of roleAssignments) {
-      await client.query(
-        `INSERT INTO public.admin_user_roles (user_id, role_slug)
-         SELECT id, $2
-         FROM neon_auth."user"
-         WHERE lower(email) = lower($1)
-         ON CONFLICT (user_id) DO NOTHING`,
-        [assignment.email, assignment.roleSlug],
-      );
-    }
-
     for (const c of SEED_CATALOGS) {
       await client.query(
         `INSERT INTO public.catalogs (slug, label, short, description, color, sort_order)
@@ -433,12 +413,57 @@ async function main() {
       );
     }
 
+    for (const role of SEED_ROLES) {
+      if (role.slug === "super_admin") {
+        await client.query(
+          `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+           VALUES ($1, $2, $3, $4::jsonb, $5)
+           ON CONFLICT (slug) DO UPDATE SET
+             permissions = EXCLUDED.permissions,
+             is_system = true`,
+          [
+            role.slug,
+            role.name,
+            role.description,
+            JSON.stringify(role.permissions),
+            role.is_system,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO public.admin_roles (slug, name, description, permissions, is_system)
+           VALUES ($1, $2, $3, $4::jsonb, $5)
+           ON CONFLICT (slug) DO NOTHING`,
+          [
+            role.slug,
+            role.name,
+            role.description,
+            JSON.stringify(role.permissions),
+            role.is_system,
+          ],
+        );
+      }
+    }
+
+    for (const mapping of INITIAL_USER_ROLE_MAP) {
+      await client.query(
+        `INSERT INTO public.admin_user_roles (user_id, role_slug)
+         SELECT id, $2
+         FROM neon_auth."user"
+         WHERE lower(email) = lower($1)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [mapping.email, mapping.role_slug],
+      );
+    }
+
     await client.query("COMMIT");
 
     const counts = await client.query(`
       SELECT
         (SELECT COUNT(*)::int FROM public.catalogs) AS catalog_count,
-        (SELECT COUNT(*)::int FROM public.products) AS product_count
+        (SELECT COUNT(*)::int FROM public.products) AS product_count,
+        (SELECT COUNT(*)::int FROM public.admin_roles) AS role_count,
+        (SELECT COUNT(*)::int FROM public.admin_user_roles) AS user_role_count
     `);
     console.log("Database schema & seed ready:", counts.rows[0]);
   } catch (err) {

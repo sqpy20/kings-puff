@@ -71,6 +71,13 @@ async function main() {
     .trim()
     .toLowerCase();
 
+  if (!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(rbacRoleSlug)) {
+    console.error(
+      "Error: --role must be 2–48 lowercase letters, digits, hyphens, or underscores.",
+    );
+    process.exit(1);
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     console.error("Error: provide a valid --email or ADMIN_EMAIL.");
     process.exit(1);

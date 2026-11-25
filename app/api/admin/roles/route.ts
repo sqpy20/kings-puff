@@ -11,11 +11,15 @@ export async function GET() {
   const gate = await requireAdminPermission("roles.read");
   if ("response" in gate) return gate.response;
 
-  const roles = await listRoles();
-  return Response.json(
-    { roles, permissionCatalog: PERMISSIONS },
-    { status: 200 },
-  );
+  try {
+    const roles = await listRoles();
+    return Response.json(
+      { roles, permissionCatalog: PERMISSIONS },
+      { status: 200 },
+    );
+  } catch (err) {
+    return rbacErrorResponse(err);
+  }
 }
 
 export async function POST(request: Request) {

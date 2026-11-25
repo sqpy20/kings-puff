@@ -1,6 +1,5 @@
 import { requireAdminPermission } from "@/lib/auth/admin";
 import {
-  RbacError,
   assignUserRole,
   parseRbacJsonBody,
   rbacErrorResponse,
@@ -18,9 +17,14 @@ export async function PATCH(
     const body = await parseRbacJsonBody(request);
     const roleSlug =
       typeof body.roleSlug === "string" ? body.roleSlug.trim() : "";
+
     if (!roleSlug) {
-      throw new RbacError(400, "roleSlug is required.");
+      return Response.json(
+        { error: "roleSlug is required." },
+        { status: 400 },
+      );
     }
+
     const user = await assignUserRole(id, roleSlug, gate.user.id);
     return Response.json({ user }, { status: 200 });
   } catch (err) {

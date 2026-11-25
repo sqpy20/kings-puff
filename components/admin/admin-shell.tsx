@@ -745,9 +745,9 @@ export default function AdminShell({
             />
           ) : effectiveTab === "roles" ? (
             <RolesTab
+              currentUser={user}
               roles={roles}
               users={users}
-              currentUserId={user.id}
               canWrite={canWriteRoles}
               onMutated={fetchAll}
               onFlash={onFlash}
