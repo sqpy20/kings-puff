@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getCatalogs, getProducts } from "@/lib/catalog-data";
+import { guides } from "@/lib/guides";
 import { absoluteUrl } from "@/lib/seo";
 
-const LAST_MODIFIED = "2026-11-21T00:00:00.000Z";
+const BASE_LAST_MODIFIED = "2026-11-25T00:00:00.000Z";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [categories, products] = await Promise.all([
@@ -13,33 +14,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: absoluteUrl("/"),
-      lastModified: LAST_MODIFIED,
-      changeFrequency: "weekly",
+      lastModified: BASE_LAST_MODIFIED,
+      changeFrequency: "daily",
       priority: 1,
     },
     {
       url: absoluteUrl("/shop"),
-      lastModified: LAST_MODIFIED,
+      lastModified: BASE_LAST_MODIFIED,
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
+      url: absoluteUrl("/guides"),
+      lastModified: BASE_LAST_MODIFIED,
       changeFrequency: "weekly",
-      priority: 0.9,
+      priority: 0.85,
     },
     {
       url: absoluteUrl("/about"),
-      lastModified: LAST_MODIFIED,
+      lastModified: BASE_LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: absoluteUrl("/faq"),
-      lastModified: LAST_MODIFIED,
+      lastModified: BASE_LAST_MODIFIED,
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.75,
     },
     {
       url: absoluteUrl("/press"),
-      lastModified: LAST_MODIFIED,
+      lastModified: BASE_LAST_MODIFIED,
       changeFrequency: "monthly",
-      priority: 0.6,
+      priority: 0.65,
     },
   ];
 
@@ -47,20 +54,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const lead = products.find((p) => p.category === category.slug);
     return {
       url: absoluteUrl(`/shop/${category.slug}`),
-      lastModified: LAST_MODIFIED,
+      lastModified: BASE_LAST_MODIFIED,
       changeFrequency: "weekly",
-      priority: 0.85,
+      priority: 0.9,
       ...(lead ? { images: [absoluteUrl(lead.image)] } : {}),
     };
   });
 
   const productPages: MetadataRoute.Sitemap = products.map((product) => ({
     url: absoluteUrl(`/products/${product.id}`),
-    lastModified: LAST_MODIFIED,
+    lastModified: BASE_LAST_MODIFIED,
     changeFrequency: "weekly",
-    priority: 0.8,
+    priority: 0.85,
     images: [absoluteUrl(product.image)],
   }));
 
-  return [...staticPages, ...categoryPages, ...productPages];
+  const guidePages: MetadataRoute.Sitemap = guides.map((guide) => ({
+    url: absoluteUrl(`/guides/${guide.slug}`),
+    lastModified: guide.updatedAt,
+    changeFrequency: "monthly",
+    priority: 0.8,
+    images: [absoluteUrl(guide.image)],
+  }));
+
+  return [...staticPages, ...categoryPages, ...productPages, ...guidePages];
 }

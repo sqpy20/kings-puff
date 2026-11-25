@@ -33,18 +33,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       noIndex: true,
     });
   }
+  const availability =
+    product.stockQty <= 0 ? "out of stock" : "in stock";
+
   return buildMetadata({
-    title: product.name,
+    title: `${product.name} — UK Delivery`,
     description: product.description,
     path: `/products/${product.id}`,
     image: product.image,
-    imageAlt: product.name,
+    imageAlt: `${product.name} · Momo Eliquid`,
     keywords: [
       product.name,
       "Momo Eliquid",
-      product.category,
+      product.categoryLabel ?? product.category,
       ...product.details.map((d) => d.value),
+      "UK delivery",
     ],
+    other: {
+      "product:price:amount": product.price.toFixed(2),
+      "product:price:currency": "GBP",
+      "product:availability": availability,
+      "product:brand": "Momo Eliquid",
+    },
   });
 }
 

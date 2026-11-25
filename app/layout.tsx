@@ -16,6 +16,7 @@ import "./globals.css";
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const instrument = Instrument_Serif({
@@ -23,6 +24,7 @@ const instrument = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
   style: "italic",
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -93,6 +95,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en-GB"
       className={`${bricolage.variable} ${instrument.variable}`}
     >
+      <head>
+        <link
+          rel="preconnect"
+          href="https://res.cloudinary.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="font-sans antialiased">
         <JsonLd data={organizationJsonLd()} />
         <BacklinkTracker />
