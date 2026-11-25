@@ -62,19 +62,19 @@ export default function Contact({ padTop = false }: { padTop?: boolean }) {
   return (
     <section id="contact" className="scroll-mt-24 bg-sand">
       <div
-        className={`shell pb-16 lg:pb-[100px] ${padTop ? "pt-12 lg:pt-[78px]" : ""}`}
+        className={`shell pb-16 lg:pb-25 ${padTop ? "pt-12 lg:pt-19.5" : ""}`}
       >
-        <div className="mx-auto max-w-[906px] rounded-[28px] bg-white px-[18px] py-8 sm:px-10 sm:py-12">
-          <p className="text-[11.5px] leading-4 font-bold tracking-[0.1em] uppercase">
+        <div className="mx-auto max-w-226.5 rounded-[28px] bg-white px-4.5 py-8 sm:px-10 sm:py-12">
+          <p className="text-[11.5px] leading-4 font-bold tracking-widest uppercase">
             Contact
           </p>
           <h2 className="mt-3 text-[30px] leading-[1.2] font-extrabold tracking-[-0.02em] sm:text-[43px]">
             Get in{" "}
-            <em className="font-serif text-[1.1em] leading-[0] font-normal tracking-[-0.01em]">
+            <em className="font-serif text-[1.1em] leading-0 font-normal tracking-[-0.01em]">
               touch.
             </em>
           </h2>
-          <p className="mt-4 max-w-[620px] text-[17px] leading-7">
+          <p className="mt-4 max-w-155 text-[17px] leading-7">
             Questions about an order, a product or lab results? Send us a note
             and we&apos;ll get back to you. support@momoeliquidz.co.uk
           </p>
@@ -97,7 +97,7 @@ export default function Contact({ padTop = false }: { padTop?: boolean }) {
                 disabled={submitting}
                 autoComplete="name"
                 placeholder="Your name"
-                className={`${field} h-[55px] disabled:opacity-60`}
+                className={`${field} h-13.75 disabled:opacity-60`}
               />
             </label>
             <label className="text-[15px] font-bold">
@@ -109,7 +109,7 @@ export default function Contact({ padTop = false }: { padTop?: boolean }) {
                 disabled={submitting}
                 autoComplete="email"
                 placeholder="you@email.com"
-                className={`${field} h-[55px] disabled:opacity-60`}
+                className={`${field} h-13.75 disabled:opacity-60`}
               />
             </label>
             <label className="text-[15px] font-bold sm:col-span-2">
@@ -130,7 +130,7 @@ export default function Contact({ padTop = false }: { padTop?: boolean }) {
                 className="inline-flex h-14 cursor-pointer items-center gap-1.5 rounded-full bg-ink px-7 text-[17px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Sending…" : "Send message"}
-                <ArrowIcon className="size-[18px]" />
+                <ArrowIcon className="size-4.5" />
               </button>
               {feedback && (
                 <p

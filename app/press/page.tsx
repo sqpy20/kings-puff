@@ -52,25 +52,25 @@ export default async function PressPage() {
         ])}
       />
       <Nav />
-      <main className="shell pt-[25px] pb-16 lg:pb-24">
-        <nav aria-label="Breadcrumb" className="text-[14.5px] leading-[22px]">
+      <main className="shell pt-6.25 pb-16 lg:pb-24">
+        <nav aria-label="Breadcrumb" className="text-[14.5px] leading-5.5">
           <Link href="/" className="underline underline-offset-2">
             Home
           </Link>{" "}
           / Press &amp; Partners
         </nav>
 
-        <section className="mt-5 rounded-[28px] bg-purple px-6 py-10 text-white sm:px-10 lg:rounded-[32px] lg:px-14 lg:py-14">
-          <p className="inline-flex h-7 items-center rounded-full bg-lime px-3 text-[11px] font-bold tracking-[0.1em] text-ink uppercase">
+        <section className="mt-5 rounded-[28px] bg-purple px-6 py-10 text-white sm:px-10 lg:rounded-4xl lg:px-14 lg:py-14">
+          <p className="inline-flex h-7 items-center rounded-full bg-lime px-3 text-[11px] font-bold tracking-widest text-ink uppercase">
             Press &amp; Partner Kit
           </p>
           <h1 className="mt-4 text-[38px] leading-[1.06] font-extrabold tracking-[-0.04em] sm:text-[54px] lg:text-[64px]">
             Share &amp; link to{" "}
-            <em className="font-serif text-[1.08em] leading-[0] font-normal tracking-[-0.02em]">
+            <em className="font-serif text-[1.08em] leading-0 font-normal tracking-[-0.02em]">
               Momo Eliquid.
             </em>
           </h1>
-          <p className="mt-4 max-w-[640px] text-lg leading-7 text-white/90">
+          <p className="mt-4 max-w-160 text-lg leading-7 text-white/90">
             Official logos, verified product details, and ready-to-use partner
             backlink snippets for UK reviewers, creators, and retail stockists.
           </p>
@@ -80,7 +80,7 @@ export default async function PressPage() {
           <BacklinkKit categories={categories} products={products} />
 
           <section className="rounded-[28px] bg-white p-6 sm:p-9 lg:p-10">
-            <p className="text-[11.5px] leading-4 font-bold tracking-[0.1em] uppercase">
+            <p className="text-[11.5px] leading-4 font-bold tracking-widest uppercase">
               Brand assets
             </p>
             <h2 className="mt-3 text-[28px] leading-[1.15] font-extrabold tracking-[-0.02em] sm:text-[32px]">
@@ -125,7 +125,7 @@ export default async function PressPage() {
         <section className="mt-12 rounded-[28px] bg-white p-6 sm:p-9 lg:p-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-[11.5px] leading-4 font-bold tracking-[0.1em] uppercase">
+              <p className="text-[11.5px] leading-4 font-bold tracking-widest uppercase">
                 Reference directory
               </p>
               <h2 className="mt-2 text-[28px] leading-[1.2] font-extrabold tracking-[-0.02em] sm:text-[36px]">
