@@ -4,6 +4,7 @@ import {
   FREE_SHIPPING_THRESHOLD,
   type Product,
 } from "./catalog";
+import { BRAND_LOGO_URL } from "./media";
 
 export const SITE_NAME = "Momo Eliquid";
 export const SITE_TAGLINE = "UK E-Liquids, Gummies & Small-Batch Kush";
@@ -20,6 +21,7 @@ export const SOCIAL_PROFILES = [
 ];
 
 export function absoluteUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return normalized === "/" ? SITE_URL : `${SITE_URL}${normalized}`;
 }
@@ -128,7 +130,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     "@id": `${SITE_URL}/#organization`,
     name: SITE_NAME,
     url: SITE_URL,
-    logo: absoluteUrl("/logo.jpg"),
+    logo: BRAND_LOGO_URL,
     sameAs: SOCIAL_PROFILES,
     contactPoint: {
       "@type": "ContactPoint",

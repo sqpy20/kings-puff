@@ -8,13 +8,16 @@
     "start": "next start",
     "lint": "eslint",
     "admin:create": "node scripts/create-admin.mjs",
-    "db:seed": "node scripts/db-seed.mjs"
+    "db:seed": "node scripts/db-seed.mjs",
+    "images:migrate": "node scripts/migrate-images-to-cloudinary.mjs"
   },
   "dependencies": {
     "@neon/auth": "^0.8.2",
     "@neon/config": "^1.14.6",
     "@neon/env": "^2.1.9",
+    "cloudinary": "^2.11.0",
     "next": "16.4.6",
+    "nodemailer": "^10.6.1",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",

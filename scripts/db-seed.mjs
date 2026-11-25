@@ -80,7 +80,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 1499,
     stock_qty: 38,
-    image: "/vapes/image-1.png",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584272/momo-eliquid/vapes/image-1.png",
     badge: "Featured",
     featured: true,
     active: true,
@@ -101,7 +102,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 499,
     stock_qty: 42,
-    image: "/vapes/image-2.jpg",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584282/momo-eliquid/vapes/image-2.jpg",
     badge: "New arrival",
     featured: true,
     active: true,
@@ -122,7 +124,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 699,
     stock_qty: 45,
-    image: "/vapes/image-3.jpeg",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584286/momo-eliquid/vapes/image-3.jpg",
     badge: "Available",
     featured: false,
     active: true,
@@ -143,7 +146,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 2200,
     stock_qty: 30,
-    image: "/gummies/image-1.jpeg",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584289/momo-eliquid/gummies/image-1.jpg",
     badge: "New arrival",
     featured: true,
     active: true,
@@ -164,7 +168,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 2200,
     stock_qty: 28,
-    image: "/gummies/image-2.jpeg",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584290/momo-eliquid/gummies/image-2.jpg",
     badge: "Featured",
     featured: false,
     active: true,
@@ -185,7 +190,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 2600,
     stock_qty: 8,
-    image: "/gummies/image-3.webp",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584292/momo-eliquid/gummies/image-3.webp",
     badge: "Limited stock",
     featured: false,
     active: true,
@@ -206,7 +212,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 3500,
     stock_qty: 24,
-    image: "/kush/image-1.webp",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584293/momo-eliquid/kush/image-1.webp",
     badge: "Featured",
     featured: true,
     active: true,
@@ -227,7 +234,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 3800,
     stock_qty: 26,
-    image: "/kush/image-2.webp",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584296/momo-eliquid/kush/image-2.webp",
     badge: "New arrival",
     featured: false,
     active: true,
@@ -248,7 +256,8 @@ const SEED_PRODUCTS = [
     ],
     price_pence: 6000,
     stock_qty: 8,
-    image: "/kush/image-3.webp",
+    image:
+      "https://res.cloudinary.com/eshrmvst/image/upload/v1795584297/momo-eliquid/kush/image-3.webp",
     badge: "Limited stock",
     featured: false,
     active: true,

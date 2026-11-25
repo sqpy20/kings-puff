@@ -1,33 +1,34 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MEDIA_IMAGES } from "@/lib/media";
 import { ArrowIcon } from "./illustrations";
 
 const highlights = [
   {
     title: "Signature E-Liquids",
     text: "60 ml shortfills & crisp 10 ml nic salts blended for bold, all-day fruit flavour.",
-    image: "/vapes/image-1.png",
+    image: MEDIA_IMAGES.vapes.sodaLish,
     href: "/shop/vapes",
     color: "bg-pink",
   },
   {
     title: "Dosed Gummies",
     text: "Sugar-coated rings, bites & cubes accurately dosed at 10–15 mg THC per piece.",
-    image: "/gummies/image-3.webp",
+    image: MEDIA_IMAGES.gummies.sourAppleCubes,
     href: "/shop/gummies",
     color: "bg-lime",
   },
   {
     title: "Small-Batch Kush",
     text: "Dense, frosty 3.5 g and 7 g flower pouches sealed fresh at 22–26% THC.",
-    image: "/kush/image-2.webp",
+    image: MEDIA_IMAGES.kush.purpleKush,
     href: "/shop/kush",
     color: "bg-teal",
   },
   {
     title: "ExPod Pro Pods",
     text: "Ready-to-vape 2 ml prefilled pods at 20 mg/ml for instant Cola Gummy flavour.",
-    image: "/vapes/image-3.jpeg",
+    image: MEDIA_IMAGES.vapes.expodProCola,
     href: "/shop/vapes",
     color: "bg-orange",
   },

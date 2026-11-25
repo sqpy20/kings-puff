@@ -59,19 +59,6 @@ export type Product = {
 export const FREE_SHIPPING_THRESHOLD = 50;
 export const LOW_STOCK_THRESHOLD = 10;
 
-export const PRODUCT_IMAGE_PRESETS: readonly { label: string; value: string }[] = [
-  { label: "Soda-lish Shortfill (/vapes/image-1.png)", value: "/vapes/image-1.png" },
-  { label: "Kuro Momo Fuji (/vapes/image-2.jpg)", value: "/vapes/image-2.jpg" },
-  { label: "ExPod Pro Cola (/vapes/image-3.jpeg)", value: "/vapes/image-3.jpeg" },
-  { label: "Blue Raspberry Rings (/gummies/image-1.jpeg)", value: "/gummies/image-1.jpeg" },
-  { label: "Wild Berry Bites (/gummies/image-2.jpeg)", value: "/gummies/image-2.jpeg" },
-  { label: "Sour Apple Cubes (/gummies/image-3.webp)", value: "/gummies/image-3.webp" },
-  { label: "OG Kush Reserve (/kush/image-1.webp)", value: "/kush/image-1.webp" },
-  { label: "Purple Kush (/kush/image-2.webp)", value: "/kush/image-2.webp" },
-  { label: "Lemon Kush (/kush/image-3.webp)", value: "/kush/image-3.webp" },
-  { label: "Momo Eliquid Brand Mark (/logo.jpg)", value: "/logo.jpg" },
-];
-
 export function formatPrice(amount: number): string {
   return `£${amount.toFixed(2)}`;
 }
