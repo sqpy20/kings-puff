@@ -67,33 +67,46 @@ export async function getAdminSession(): Promise<AdminSessionResult> {
     return { authenticated: false, isAdmin: false, user: null };
   }
 
-  const role = typeof rawUser.role === "string" ? rawUser.role : "user";
-  const isAdmin = isAdminRole(role) && rawUser.banned !== true;
+  const rawSession = data?.session as { id?: unknown } | null | undefined;
+  const sessionId =
+    typeof rawSession?.id === "string" ? rawSession.id : null;
+
+  let liveRole = typeof rawUser.role === "string" ? rawUser.role : "user";
+  let liveBanned = rawUser.banned === true;
 
   let access = {
-    roleSlug: isAdmin ? SYSTEM_ROLES.ADMIN : role,
-    roleName: isAdmin ? "Admin" : role,
+    exists: true,
+    banned: liveBanned,
+    authRole: liveRole,
+    sessionActive: true,
+    roleSlug: SYSTEM_ROLES.ADMIN as string,
+    roleName: "Admin",
     isSuperAdmin: false,
     permissions: [] as PermissionKey[],
   };
 
-  if (isAdmin) {
-    try {
-      access = await getUserAccess(rawUser.id);
-    } catch {
-      // Fallback to zero permissions if RBAC tables are not yet initialized.
+  try {
+    access = await getUserAccess(rawUser.id, sessionId);
+    if (!access.exists || !access.sessionActive) {
+      return { authenticated: false, isAdmin: false, user: null };
     }
+    liveRole = access.authRole;
+    liveBanned = access.banned;
+  } catch {
+    // Fallback to cookie claims with zero permissions if RBAC tables are unavailable.
   }
+
+  const isAdmin = isAdminRole(liveRole) && !liveBanned;
 
   const user: AdminUser = {
     id: rawUser.id,
     email: typeof rawUser.email === "string" ? rawUser.email : "",
     name: typeof rawUser.name === "string" ? rawUser.name : null,
-    role,
-    rbacRole: access.roleSlug,
-    rbacRoleName: access.roleName,
-    isSuperAdmin: access.isSuperAdmin,
-    permissions: access.permissions,
+    role: liveRole,
+    rbacRole: isAdmin ? access.roleSlug : liveRole,
+    rbacRoleName: isAdmin ? access.roleName : liveRole,
+    isSuperAdmin: isAdmin && access.isSuperAdmin,
+    permissions: isAdmin ? access.permissions : [],
   };
 
   return {

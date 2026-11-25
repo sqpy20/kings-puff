@@ -35,6 +35,10 @@ type UserRow = {
 };
 
 export type UserAccess = {
+  exists: boolean;
+  banned: boolean;
+  authRole: string;
+  sessionActive: boolean;
   roleSlug: string;
   roleName: string;
   isSuperAdmin: boolean;
@@ -158,10 +162,17 @@ export function rbacErrorResponse(err: unknown): Response {
   );
 }
 
-/** Resolves effective RBAC role and permissions for a verified user UUID. */
-export async function getUserAccess(userId: string): Promise<UserAccess> {
+/** Resolves live Neon Auth user state, session validity, RBAC role, and permissions. */
+export async function getUserAccess(
+  userId: string,
+  sessionId?: string | null,
+): Promise<UserAccess> {
   if (!UUID_RE.test(userId)) {
     return {
+      exists: false,
+      banned: true,
+      authRole: "user",
+      sessionActive: false,
       roleSlug: SYSTEM_ROLES.ADMIN,
       roleName: "Admin",
       isSuperAdmin: false,
@@ -170,28 +181,76 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
   }
 
   const db = getPool();
-  const assignedRes = await db.query<{
-    slug: string;
-    name: string;
-    permissions: unknown;
+  const validSessionId =
+    typeof sessionId === "string" && UUID_RE.test(sessionId) ? sessionId : null;
+
+  const userRes = await db.query<{
+    banned: boolean | null;
+    auth_role: string | null;
+    session_active: boolean;
+    role_slug: string | null;
+    role_name: string | null;
+    role_permissions: unknown;
   }>(
-    `SELECT ar.slug, ar.name, ar.permissions
-     FROM public.admin_user_roles aur
-     JOIN public.admin_roles ar ON ar.slug = aur.role_slug
-     WHERE aur.user_id = $1::uuid`,
-    [userId],
+    `SELECT
+       COALESCE(u.banned, false) AS banned,
+       COALESCE(u.role, 'user') AS auth_role,
+       CASE
+         WHEN $2::uuid IS NOT NULL THEN EXISTS (
+           SELECT 1
+           FROM neon_auth.session s
+           WHERE s.id = $2::uuid
+             AND s."userId" = u.id
+             AND s."expiresAt" > NOW()
+         )
+         ELSE EXISTS (
+           SELECT 1
+           FROM neon_auth.session s
+           WHERE s."userId" = u.id
+             AND s."expiresAt" > NOW()
+         )
+       END AS session_active,
+       aur.role_slug,
+       ar.name AS role_name,
+       ar.permissions AS role_permissions
+     FROM neon_auth."user" u
+     LEFT JOIN public.admin_user_roles aur ON aur.user_id = u.id
+     LEFT JOIN public.admin_roles ar ON ar.slug = aur.role_slug
+     WHERE u.id = $1::uuid`,
+    [userId, validSessionId],
   );
 
-  if ((assignedRes.rowCount ?? 0) > 0) {
-    const row = assignedRes.rows[0];
-    const isSuperAdmin = row.slug === SYSTEM_ROLES.SUPER_ADMIN;
+  if ((userRes.rowCount ?? 0) === 0) {
     return {
-      roleSlug: row.slug,
-      roleName: row.name,
+      exists: false,
+      banned: true,
+      authRole: "user",
+      sessionActive: false,
+      roleSlug: SYSTEM_ROLES.ADMIN,
+      roleName: "Admin",
+      isSuperAdmin: false,
+      permissions: [],
+    };
+  }
+
+  const row = userRes.rows[0];
+  const banned = Boolean(row.banned);
+  const authRole = row.auth_role ?? "user";
+  const sessionActive = Boolean(row.session_active);
+
+  if (row.role_slug) {
+    const isSuperAdmin = row.role_slug === SYSTEM_ROLES.SUPER_ADMIN;
+    return {
+      exists: true,
+      banned,
+      authRole,
+      sessionActive,
+      roleSlug: row.role_slug,
+      roleName: row.role_name ?? (isSuperAdmin ? "Super Admin" : "Admin"),
       isSuperAdmin,
       permissions: isSuperAdmin
         ? [...ALL_PERMISSION_KEYS]
-        : normalizePermissions(row.permissions),
+        : normalizePermissions(row.role_permissions),
     };
   }
 
@@ -207,16 +266,24 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
   );
 
   if ((fallbackRes.rowCount ?? 0) > 0) {
-    const row = fallbackRes.rows[0];
+    const fallback = fallbackRes.rows[0];
     return {
-      roleSlug: row.slug,
-      roleName: row.name,
+      exists: true,
+      banned,
+      authRole,
+      sessionActive,
+      roleSlug: fallback.slug,
+      roleName: fallback.name,
       isSuperAdmin: false,
-      permissions: normalizePermissions(row.permissions),
+      permissions: normalizePermissions(fallback.permissions),
     };
   }
 
   return {
+    exists: true,
+    banned,
+    authRole,
+    sessionActive,
     roleSlug: SYSTEM_ROLES.ADMIN,
     roleName: "Admin",
     isSuperAdmin: false,

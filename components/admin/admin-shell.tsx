@@ -379,7 +379,7 @@ export default function AdminShell({
             className="text-[24px] leading-none font-extrabold tracking-[-0.04em]"
           >
             Momo Eliquid
-            <sup className="relative -top-[1.1em] ml-px text-[8px] tracking-normal">
+            <sup className="relative top-[-1.1em] ml-px text-[8px] tracking-normal">
               ®
             </sup>
           </Link>
@@ -535,7 +535,7 @@ export default function AdminShell({
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-32 animate-pulse rounded-[24px] border-2 border-ink/20 bg-sand"
+                  className="h-32 animate-pulse rounded-3xl border-2 border-ink/20 bg-sand"
                 />
               ))}
             </div>
@@ -546,7 +546,7 @@ export default function AdminShell({
               </span>
               <h2 className="mt-4 text-[28px] leading-tight font-extrabold tracking-[-0.02em]">
                 No permissions{" "}
-                <em className="font-serif text-[1.08em] leading-[0] font-normal tracking-[-0.02em]">
+                <em className="font-serif text-[1.08em] leading-0 font-normal tracking-[-0.02em]">
                   assigned yet.
                 </em>
               </h2>
@@ -579,7 +579,7 @@ export default function AdminShell({
                 <div>
                   <h2 className="text-[32px] leading-[1.08] font-extrabold tracking-[-0.03em] sm:text-[42px]">
                     Store{" "}
-                    <em className="font-serif text-[1.08em] leading-[0] font-normal tracking-[-0.02em]">
+                    <em className="font-serif text-[1.08em] leading-0 font-normal tracking-[-0.02em]">
                       overview.
                     </em>
                   </h2>
@@ -616,8 +616,8 @@ export default function AdminShell({
                 aria-label="Store metrics"
                 className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4"
               >
-                <article className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-[0.1em] uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
                     Catalogs
                   </p>
                   <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
@@ -628,8 +628,8 @@ export default function AdminShell({
                   </p>
                 </article>
 
-                <article className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-[0.1em] uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
                     Products
                   </p>
                   <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
@@ -641,8 +641,8 @@ export default function AdminShell({
                   </p>
                 </article>
 
-                <article className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-[0.1em] uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
                     Total Stock Units
                   </p>
                   <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
@@ -654,11 +654,11 @@ export default function AdminShell({
                 </article>
 
                 <article
-                  className={`rounded-[24px] border-2 border-ink p-6 shadow-[5px_5px_0_var(--color-ink)] ${
+                  className={`rounded-3xl border-2 border-ink p-6 shadow-[5px_5px_0_var(--color-ink)] ${
                     lowStockProducts.length > 0 ? "bg-pink" : "bg-teal"
                   }`}
                 >
-                  <p className="text-xs font-extrabold tracking-[0.1em] uppercase text-ink/80">
+                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/80">
                     Low Stock Alerts
                   </p>
                   <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
@@ -671,7 +671,7 @@ export default function AdminShell({
               </section>
 
               <div className="grid gap-6 lg:grid-cols-2">
-                <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
                   <div className="flex items-center justify-between gap-2 border-b border-ink/15 pb-4">
                     <h3 className="text-lg font-extrabold">
                       Collections snapshot
@@ -710,7 +710,7 @@ export default function AdminShell({
                   </ul>
                 </section>
 
-                <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
                   <div className="flex items-center justify-between gap-2 border-b border-ink/15 pb-4">
                     <h3 className="text-lg font-extrabold">
                       Stock attention needed
@@ -780,6 +780,7 @@ export default function AdminShell({
           ) : effectiveTab === "roles" ? (
             <RolesTab
               roles={roles}
+              users={users}
               canWrite={canWriteRoles}
               onMutated={fetchAll}
               onFlash={onFlash}

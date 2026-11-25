@@ -163,9 +163,9 @@ export default function AdminLoginForm({
               setEmail(e.target.value);
               if (emailError) setEmailError(null);
             }}
-            placeholder="[EMAIL_ADDRESS]"
+            placeholder="example@momoeliquidz.co.uk"
             aria-invalid={emailError ? true : undefined}
-            className={`mt-2 block h-[54px] w-full rounded-xl border-2 bg-white px-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${emailError ? "border-[#c8102e]" : "border-ink"
+            className={`mt-2 block h-13.5 w-full rounded-xl border-2 bg-white px-4.5 text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${emailError ? "border-[#c8102e]" : "border-ink"
               }`}
           />
           {emailError && (
@@ -197,7 +197,7 @@ export default function AdminLoginForm({
               }}
               placeholder="Enter your password"
               aria-invalid={passwordError ? true : undefined}
-              className={`block h-[54px] w-full rounded-xl border-2 bg-white pr-20 pl-[18px] text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${passwordError ? "border-[#c8102e]" : "border-ink"
+              className={`block h-13.5 w-full rounded-xl border-2 bg-white pr-20 pl-4.5 text-[17px] font-normal placeholder:text-ink/40 disabled:opacity-60 ${passwordError ? "border-[#c8102e]" : "border-ink"
                 }`}
             />
             <button
@@ -224,10 +224,10 @@ export default function AdminLoginForm({
         <button
           type="submit"
           disabled={pending}
-          className="mt-2 flex h-[56px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-6 text-[17px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-2 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-6 text-[17px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? "Signing in…" : "Sign in to admin"}
-          {!pending && <ArrowIcon className="size-[18px]" />}
+          {!pending && <ArrowIcon className="size-4.5" />}
         </button>
       </form>
 
