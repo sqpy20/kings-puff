@@ -12,6 +12,20 @@ export const PERMISSIONS = [
       "View store KPIs, collections snapshot, and low-stock alerts",
   },
   {
+    key: "orders.read",
+    group: "Orders",
+    label: "View orders & payment page settings",
+    description:
+      "View placed orders, customer addresses, payment methods, and payment page settings",
+  },
+  {
+    key: "orders.write",
+    group: "Orders",
+    label: "Manage orders & payment content",
+    description:
+      "Update order statuses and edit Order Received / Payment page instructions and wallets",
+  },
+  {
     key: "catalog.read",
     group: "Catalog",
     label: "View catalogs",
@@ -81,6 +95,7 @@ export const ALL_PERMISSION_KEYS: readonly PermissionKey[] = PERMISSIONS.map(
 
 export const PERMISSION_GROUPS: readonly string[] = [
   "Overview",
+  "Orders",
   "Catalog",
   "Inventory",
   "Users",

@@ -1,8 +1,10 @@
 "use client";
 
+import { type FormEvent, useState } from "react";
 import type { AdminUser } from "@/lib/auth/admin";
 import { formatPrice } from "@/lib/catalog";
 import type { AdminDbStats } from "@/lib/db";
+import type { PaymentSettings } from "@/lib/payment";
 
 export type AdminConfigPayload = {
   user: AdminUser;
@@ -21,6 +23,7 @@ export type AdminConfigPayload = {
     from: string | null;
     contactTo: string;
   };
+  paymentSettings: PaymentSettings;
   storefront: {
     siteName: string;
     siteUrl: string;
@@ -39,6 +42,146 @@ export type AdminConfigPayload = {
     };
   };
 };
+
+function PaymentSettingsForm({
+  initial,
+  onRefresh,
+}: {
+  initial: PaymentSettings;
+  onRefresh: () => Promise<void>;
+}) {
+  const [supportEmail, setSupportEmail] = useState(initial.supportEmail);
+  const [btcAddress, setBtcAddress] = useState(initial.btcAddress);
+  const [ethAddress, setEthAddress] = useState(initial.ethAddress);
+  const [solAddress, setSolAddress] = useState(initial.solAddress);
+  const [usdtAddress, setUsdtAddress] = useState(initial.usdtAddress);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  async function savePaymentSettings(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (savingPayment) return;
+    setSavingPayment(true);
+    setPaymentMessage(null);
+
+    try {
+      const res = await fetch("/api/admin/payment-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supportEmail,
+          btcAddress,
+          ethAddress,
+          solAddress,
+          usdtAddress,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setPaymentMessage({
+          kind: "error",
+          text: json.error || "Failed to update payment settings.",
+        });
+        return;
+      }
+      await onRefresh();
+      setPaymentMessage({
+        kind: "success",
+        text: "Payment settings saved.",
+      });
+    } catch {
+      setPaymentMessage({
+        kind: "error",
+        text: "Network error saving payment settings.",
+      });
+    } finally {
+      setSavingPayment(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={savePaymentSettings}
+      className="mt-5 grid gap-4 sm:grid-cols-2"
+    >
+      <label className="block text-xs font-extrabold uppercase sm:col-span-2">
+        Support Email (Gift Cards &amp; Bank Transfer)
+        <input
+          type="email"
+          required
+          value={supportEmail}
+          onChange={(e) => setSupportEmail(e.target.value)}
+          className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 text-sm font-semibold"
+        />
+      </label>
+
+      <label className="block text-xs font-extrabold uppercase">
+        Bitcoin (BTC) Address
+        <input
+          type="text"
+          value={btcAddress}
+          onChange={(e) => setBtcAddress(e.target.value)}
+          className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 font-mono text-xs font-bold"
+        />
+      </label>
+
+      <label className="block text-xs font-extrabold uppercase">
+        Ethereum (ETH) Address
+        <input
+          type="text"
+          value={ethAddress}
+          onChange={(e) => setEthAddress(e.target.value)}
+          className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 font-mono text-xs font-bold"
+        />
+      </label>
+
+      <label className="block text-xs font-extrabold uppercase">
+        Solana (SOL) Address
+        <input
+          type="text"
+          value={solAddress}
+          onChange={(e) => setSolAddress(e.target.value)}
+          className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 font-mono text-xs font-bold"
+        />
+      </label>
+
+      <label className="block text-xs font-extrabold uppercase">
+        Tether (USDT) Address
+        <input
+          type="text"
+          value={usdtAddress}
+          onChange={(e) => setUsdtAddress(e.target.value)}
+          className="mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 font-mono text-xs font-bold"
+        />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3 pt-1 sm:col-span-2">
+        <button
+          type="submit"
+          disabled={savingPayment}
+          className="inline-flex h-11 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-6 text-sm font-extrabold text-ink shadow-[3px_3px_0_var(--color-ink)] hover:bg-teal disabled:opacity-60"
+        >
+          {savingPayment ? "Saving…" : "Save payment settings"}
+        </button>
+        {paymentMessage && (
+          <p
+            role={paymentMessage.kind === "error" ? "alert" : "status"}
+            className={`text-sm font-bold ${
+              paymentMessage.kind === "error"
+                ? "text-[#c8102e]"
+                : "text-ink"
+            }`}
+          >
+            {paymentMessage.text}
+          </p>
+        )}
+      </div>
+    </form>
+  );
+}
 
 export default function ConfigTab({
   config,
@@ -306,6 +449,26 @@ export default function ConfigTab({
               </div>
             </section>
           </div>
+
+          <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-extrabold">
+                  Payment Settings (Crypto Wallets &amp; Support Email)
+                </h3>
+                <p className="mt-0.5 text-xs text-ink/70">
+                  Displayed on customer Order Received &amp; Payment pages and
+                  order confirmation emails.
+                </p>
+              </div>
+            </div>
+
+            <PaymentSettingsForm
+              key={JSON.stringify(config.paymentSettings)}
+              initial={config.paymentSettings}
+              onRefresh={onRefresh}
+            />
+          </section>
 
           <section className="rounded-[24px] border-2 border-ink bg-sand p-6">
             <h3 className="text-lg font-extrabold">Infrastructure CLI Commands</h3>

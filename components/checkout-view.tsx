@@ -1,34 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useAttribution } from "@/lib/backlinks";
-import { useCart, useShipState } from "@/lib/cart";
+import { clearCart, useCart, useShipState } from "@/lib/cart";
 import {
   FREE_SHIPPING_THRESHOLD,
   bgClass,
   formatPrice,
 } from "@/lib/catalog";
+import {
+  CRYPTO_CURRENCY_LIST,
+  PAYMENT_OPTIONS,
+  type PaymentMethod,
+  SHIPPING_OPTIONS,
+  type ShippingMethodId,
+} from "@/lib/payment";
 import { states } from "@/lib/states";
 import { ArrowIcon } from "./illustrations";
 import { ProductArt } from "./product-card";
 
-const shippingOptions = [
-  { id: "express", label: "Express delivery (1–2 working days)", price: 5.99 },
-  { id: "standard", label: "Standard delivery (3–5 working days)", price: 3.99 },
-];
-
-const paymentOptions = [
-  { id: "crypto", label: "Cryptocurrency" },
-  { id: "gift-card", label: "Pay with gift cards" },
-  { id: "bank", label: "Direct bank transfer" },
-];
-
-const currencies = ["Bitcoin (BTC)", "Ethereum (ETH)", "Solana (SOL)", "Tether (USDT)"];
-
 type Errors = Record<string, string>;
 
-function validate(data: FormData): Errors {
+const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+
+function validate(data: FormData, sameBilling: boolean): Errors {
   const get = (k: string) => String(data.get(k) ?? "").trim();
   const errors: Errors = {};
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(get("email")))
@@ -38,8 +35,24 @@ function validate(data: FormData): Errors {
   if (!get("address")) errors.address = "Please enter a valid address";
   if (!get("city")) errors.city = "Please enter a valid town or city";
   if (!get("state")) errors.state = "Please select a county / region";
-  if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(get("zip")))
+  if (!UK_POSTCODE_RE.test(get("zip")))
     errors.zip = "Please enter a valid UK postcode";
+
+  if (!sameBilling) {
+    if (!get("billingFirstName"))
+      errors.billingFirstName = "Please enter a valid billing first name";
+    if (!get("billingLastName"))
+      errors.billingLastName = "Please enter a valid billing last name";
+    if (!get("billingAddress"))
+      errors.billingAddress = "Please enter a valid billing address";
+    if (!get("billingCity"))
+      errors.billingCity = "Please enter a valid billing town or city";
+    if (!get("billingState"))
+      errors.billingState = "Please select a billing county / region";
+    if (!UK_POSTCODE_RE.test(get("billingZip")))
+      errors.billingZip = "Please enter a valid UK billing postcode";
+  }
+
   if (get("payment") === "crypto" && !get("currency"))
     errors.currency = "Please select a currency";
   return errors;
@@ -88,7 +101,7 @@ function RadioGroup({
   detail,
 }: {
   name: string;
-  options: { id: string; label: string; price?: string }[];
+  options: readonly { id: string; label: string; price?: string }[];
   value: string;
   onChange: (id: string) => void;
   /** Extra content shown inside the selected option. */
@@ -118,28 +131,108 @@ function RadioGroup({
 }
 
 export default function CheckoutView() {
+  const router = useRouter();
   const { ready, lines, count } = useCart();
   const attribution = useAttribution();
   const touch = attribution.lastTouch ?? attribution.firstTouch;
   const [shipState, setShipState] = useShipState();
   const [errors, setErrors] = useState<Errors>({});
-  const [shipping, setShipping] = useState("express");
-  const [payment, setPayment] = useState("crypto");
+  const [shipping, setShipping] = useState<ShippingMethodId>("express");
+  const [payment, setPayment] = useState<PaymentMethod>("crypto");
   const [apartment, setApartment] = useState(false);
+  const [sameBilling, setSameBilling] = useState(true);
   const [note, setNote] = useState(false);
-  const [placed, setPlaced] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const found = validate(new FormData(e.currentTarget));
+    if (submitting) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const found = validate(formData, sameBilling);
     setErrors(found);
+    setSubmitError(null);
+
     const first = Object.keys(found)[0];
     if (first) {
-      e.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
-      setPlaced(false);
-    } else {
-      // No payment or order backend yet: nothing is sent or charged.
-      setPlaced(true);
+      form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+      return;
+    }
+
+    const get = (k: string) => String(formData.get(k) ?? "").trim();
+
+    const shippingAddress = {
+      country: get("country") || "United Kingdom (UK)",
+      firstName: get("firstName"),
+      lastName: get("lastName"),
+      address: get("address"),
+      apartment: get("apartment"),
+      city: get("city"),
+      state: get("state"),
+      zip: get("zip"),
+    };
+
+    const billingAddress = sameBilling
+      ? shippingAddress
+      : {
+          country: get("billingCountry") || "United Kingdom (UK)",
+          firstName: get("billingFirstName"),
+          lastName: get("billingLastName"),
+          address: get("billingAddress"),
+          apartment: get("billingApartment"),
+          city: get("billingCity"),
+          state: get("billingState"),
+          zip: get("billingZip"),
+        };
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: get("email"),
+          phone: get("phone"),
+          orderNote: note ? get("note") : "",
+          sameBilling,
+          shippingAddress,
+          billingAddress,
+          shippingMethod: shipping,
+          paymentMethod: payment,
+          cryptoCurrency: payment === "crypto" ? get("currency") : undefined,
+          attribution: {
+            refSource: get("refSource"),
+            utmSource: get("utmSource"),
+            utmCampaign: get("utmCampaign"),
+            referrer: get("referrer"),
+            landingPath: get("landingPath"),
+          },
+          items: lines.map((l) => ({ id: l.product.id, qty: l.qty })),
+        }),
+      });
+
+      let data: { accessToken?: string; error?: string } | null = null;
+      try {
+        data = (await res.json()) as { accessToken?: string; error?: string };
+      } catch {
+        data = null;
+      }
+
+      if (!res.ok || !data?.accessToken) {
+        setSubmitError(
+          data?.error || "Unable to place your order right now. Please try again.",
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      clearCart();
+      router.push(`/checkout/order-received/${data.accessToken}`);
+    } catch {
+      setSubmitError("Network error while placing your order. Please try again.");
+      setSubmitting(false);
     }
   }
 
@@ -161,7 +254,7 @@ export default function CheckoutView() {
     (sum, l) => sum + l.product.price * l.qty,
     0,
   );
-  const resolvedShipping = shippingOptions.map((o) => {
+  const resolvedShipping = SHIPPING_OPTIONS.map((o) => {
     const amount =
       o.id === "standard" && subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : o.price;
     return {
@@ -321,15 +414,71 @@ export default function CheckoutView() {
                   />
                 </Field>
               </div>
-              <label className="mt-5 flex items-center gap-3 text-[15px]">
+              <label className="mt-5 flex cursor-pointer items-center gap-3 text-[15px]">
                 <input
                   type="checkbox"
                   name="sameBilling"
-                  defaultChecked
+                  checked={sameBilling}
+                  onChange={(e) => setSameBilling(e.target.checked)}
                   className="size-6 shrink-0 accent-ink"
                 />
                 Use same address for billing
               </label>
+
+              {!sameBilling && (
+                <div className="mt-6 rounded-2xl border-2 border-ink/15 bg-cream/60 p-5 sm:p-6">
+                  <h3 className="text-lg font-extrabold">Billing address</h3>
+                  <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                    <Field label="Country / Region" className="sm:col-span-2">
+                      <select
+                        name="billingCountry"
+                        className={`${control} border-ink`}
+                      >
+                        <option>United Kingdom (UK)</option>
+                      </select>
+                    </Field>
+                    <Field label="First name" error={errors.billingFirstName}>
+                      <input {...input("billingFirstName")} />
+                    </Field>
+                    <Field label="Last name" error={errors.billingLastName}>
+                      <input {...input("billingLastName")} />
+                    </Field>
+                    <Field
+                      label="Address"
+                      error={errors.billingAddress}
+                      className="sm:col-span-2"
+                    >
+                      <input {...input("billingAddress")} />
+                    </Field>
+                    <Field
+                      label="Apartment, suite, etc. (optional)"
+                      className="sm:col-span-2"
+                    >
+                      <input
+                        name="billingApartment"
+                        className={`${control} border-ink`}
+                      />
+                    </Field>
+                    <Field label="Town / City" error={errors.billingCity}>
+                      <input {...input("billingCity")} />
+                    </Field>
+                    <Field label="County / Region" error={errors.billingState}>
+                      <select defaultValue="" {...input("billingState")}>
+                        <option value="">Select your county / region</option>
+                        {states.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Postcode" error={errors.billingZip}>
+                      <input
+                        placeholder="e.g. SW1A 1AA"
+                        {...input("billingZip")}
+                      />
+                    </Field>
+                  </div>
+                </div>
+              )}
             </section>
 
             <section>
@@ -338,7 +487,7 @@ export default function CheckoutView() {
                 name="shipping"
                 options={resolvedShipping}
                 value={shipping}
-                onChange={setShipping}
+                onChange={(id) => setShipping(id as ShippingMethodId)}
               />
             </section>
 
@@ -346,9 +495,9 @@ export default function CheckoutView() {
               <SectionTitle>Payment options</SectionTitle>
               <RadioGroup
                 name="payment"
-                options={paymentOptions}
+                options={PAYMENT_OPTIONS}
                 value={payment}
-                onChange={setPayment}
+                onChange={(id) => setPayment(id as PaymentMethod)}
                 detail={(id) =>
                   id === "crypto" ? (
                     <div className="px-[18px] pb-5">
@@ -357,17 +506,19 @@ export default function CheckoutView() {
                           <option value="" disabled>
                             Select a currency
                           </option>
-                          {currencies.map((c) => (
-                            <option key={c}>{c}</option>
+                          {CRYPTO_CURRENCY_LIST.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.label}
+                            </option>
                           ))}
                         </select>
                       </Field>
                     </div>
                   ) : (
-                    <p className="px-[18px] pb-5 text-[15px] leading-6">
+                    <p className="px-[18px] pb-5 text-[15px] leading-6 text-ink/80">
                       {id === "gift-card"
-                        ? "[Add gift card payment instructions.]"
-                        : "[Add bank transfer instructions.]"}
+                        ? "Purchase a Steam or Apple Gift Card and email clear photos of the card and receipt after placing your order."
+                        : "Place your order to receive our UK bank transfer details by email shortly after confirmation."}
                     </p>
                   )
                 }
@@ -375,7 +526,7 @@ export default function CheckoutView() {
             </section>
 
             <section>
-              <label className="flex items-center gap-3 text-[15px]">
+              <label className="flex cursor-pointer items-center gap-3 text-[15px]">
                 <input
                   type="checkbox"
                   checked={note}
@@ -406,14 +557,17 @@ export default function CheckoutView() {
               </p>
               <button
                 type="submit"
-                className="mt-6 flex h-[60px] w-full cursor-pointer items-center justify-center rounded-full bg-ink px-6 text-lg font-bold text-white"
+                disabled={submitting}
+                className="mt-6 flex h-[60px] w-full cursor-pointer items-center justify-center rounded-full bg-ink px-6 text-lg font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Place order
+                {submitting ? "Placing order…" : "Place order"}
               </button>
-              {placed && (
-                <p role="status" className="mt-4 text-center text-[15px] leading-6">
-                  [Checkout is not connected yet. No order was placed and
-                  nothing was charged.]
+              {submitError && (
+                <p
+                  role="alert"
+                  className="mt-4 text-center text-[15px] leading-6 font-semibold text-[#c8102e]"
+                >
+                  {submitError}
                 </p>
               )}
             </section>

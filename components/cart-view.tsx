@@ -115,7 +115,7 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
       <h2 className="text-[26px] leading-[1.2] font-extrabold tracking-[-0.01em] sm:text-[30px]">
         Order summary
       </h2>
-      <label className="mt-6 block text-[15px] font-bold">
+      {/* <label className="mt-6 block text-[15px] font-bold">
         Shipping to
         <select
           value={state}
@@ -127,7 +127,7 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
             <option key={s}>{s}</option>
           ))}
         </select>
-      </label>
+      </label> */}
       <form
         className="mt-7 flex gap-2.5"
         onSubmit={(e) => {
@@ -185,7 +185,7 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
           className="mt-0.5 size-6 shrink-0 accent-ink"
         />
         <span>
-          I confirm I&apos;m 21 or older and will show valid ID on delivery. I
+          I confirm I&apos;m 18 or older. I
           agree to the{" "}
           <Link href="#" className="underline underline-offset-2">
             Terms

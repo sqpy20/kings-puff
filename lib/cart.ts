@@ -112,6 +112,10 @@ export function removeFromCart(id: string) {
   update((lines) => lines.filter((l) => l.id !== id));
 }
 
+export function clearCart() {
+  writeRaw(CART_KEY, "[]");
+}
+
 /** Lightweight item count for nav badges without fetching the product catalog. */
 export function useCartCount(): number {
   const raw = useStored(CART_KEY);

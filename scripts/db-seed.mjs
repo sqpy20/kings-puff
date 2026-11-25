@@ -273,6 +273,8 @@ const SEED_ROLES = [
       "Full unrestricted access across store overview, catalogs, inventory, roles & permissions, and infrastructure configuration.",
     permissions: [
       "overview.view",
+      "orders.read",
+      "orders.write",
       "catalog.read",
       "catalog.write",
       "inventory.read",
@@ -378,6 +380,78 @@ async function main() {
         assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      CREATE SEQUENCE IF NOT EXISTS public.orders_number_seq START WITH 1001;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.orders (
+        id BIGSERIAL PRIMARY KEY,
+        order_number INTEGER NOT NULL UNIQUE DEFAULT nextval('public.orders_number_seq'),
+        access_token TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending_payment',
+        payment_method TEXT NOT NULL,
+        shipping_method TEXT NOT NULL,
+        shipping_label TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL DEFAULT '',
+        shipping_address JSONB NOT NULL,
+        billing_address JSONB NOT NULL,
+        same_billing BOOLEAN NOT NULL DEFAULT true,
+        items JSONB NOT NULL,
+        subtotal_pence INTEGER NOT NULL,
+        shipping_pence INTEGER NOT NULL,
+        total_pence INTEGER NOT NULL,
+        order_note TEXT NOT NULL DEFAULT '',
+        crypto_currency TEXT,
+        crypto_amount TEXT,
+        crypto_address TEXT,
+        crypto_rate_gbp NUMERIC(18, 6),
+        crypto_expires_at TIMESTAMPTZ,
+        attribution JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_orders_created_at
+        ON public.orders (created_at DESC);
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.payment_settings (
+        id TEXT PRIMARY KEY,
+        support_email TEXT NOT NULL DEFAULT 'support@momoeliquidz.co.uk',
+        btc_address TEXT NOT NULL DEFAULT '',
+        eth_address TEXT NOT NULL DEFAULT '',
+        sol_address TEXT NOT NULL DEFAULT '',
+        usdt_address TEXT NOT NULL DEFAULT '',
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE public.payment_settings
+        ADD COLUMN IF NOT EXISTS order_received_subtitle TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_checkout_hint TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_intro TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_accepted_cards JSONB NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS gift_card_instructions TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS gift_card_closing TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_checkout_hint TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_instructions TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_account_name TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_sort_code TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS bank_account_number TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_title TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_subtitle TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_important_notice TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS crypto_expiry_minutes INTEGER NOT NULL DEFAULT 120;
     `);
 
     for (const c of SEED_CATALOGS) {
