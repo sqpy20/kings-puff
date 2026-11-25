@@ -16,6 +16,8 @@ export const metadata: Metadata = buildMetadata({
 
 const VALID_TABS: ReadonlySet<AdminTabId> = new Set([
   "overview",
+  "orders",
+  "payments",
   "catalog",
   "inventory",
   "users",

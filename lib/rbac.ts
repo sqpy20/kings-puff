@@ -14,16 +14,30 @@ export const PERMISSIONS = [
   {
     key: "orders.read",
     group: "Orders",
-    label: "View orders & payment page settings",
+    label: "View orders",
     description:
-      "View placed orders, customer addresses, payment methods, and payment page settings",
+      "View placed orders, payment methods, items, and customer addresses",
   },
   {
     key: "orders.write",
     group: "Orders",
-    label: "Manage orders & payment content",
+    label: "Manage orders",
     description:
-      "Update order statuses and edit Order Received / Payment page instructions and wallets",
+      "Update order statuses and mark payments received or cancelled",
+  },
+  {
+    key: "payments.read",
+    group: "Payments",
+    label: "View payment page settings",
+    description:
+      "View Order Received & Payment page instructions, bank details, and wallet addresses",
+  },
+  {
+    key: "payments.write",
+    group: "Payments",
+    label: "Manage payment page content",
+    description:
+      "Edit Order Received copy, Gift Card & Bank Transfer instructions, and crypto wallets",
   },
   {
     key: "catalog.read",
@@ -96,6 +110,7 @@ export const ALL_PERMISSION_KEYS: readonly PermissionKey[] = PERMISSIONS.map(
 export const PERMISSION_GROUPS: readonly string[] = [
   "Overview",
   "Orders",
+  "Payments",
   "Catalog",
   "Inventory",
   "Users",

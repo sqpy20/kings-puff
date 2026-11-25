@@ -48,6 +48,7 @@ export async function GET() {
             "GET /api/catalogs/[slug]",
             "GET /api/products",
             "GET /api/products/[id]",
+            "GET /api/payment-content",
             "POST /api/contact",
             "POST /api/orders",
             "GET /api/orders/[token]",
@@ -55,6 +56,8 @@ export async function GET() {
           ],
           admin: [
             "/api/admin/session",
+            "/api/admin/orders",
+            "/api/admin/orders/[id]",
             "/api/admin/catalogs",
             "/api/admin/products",
             "/api/admin/users",

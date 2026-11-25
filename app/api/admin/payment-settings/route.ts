@@ -1,4 +1,7 @@
-import { requireAdminAnyPermission } from "@/lib/auth/admin";
+import {
+  requireAdminAnyPermission,
+  requireAdminPermission,
+} from "@/lib/auth/admin";
 import {
   OrderDataError,
   getPaymentSettings,
@@ -9,9 +12,8 @@ import type { PaymentSettings } from "@/lib/payment";
 /** Returns configured Order Received / Payment page content and wallet addresses. */
 export async function GET() {
   const gate = await requireAdminAnyPermission([
-    "orders.read",
-    "orders.write",
-    "config.view",
+    "payments.read",
+    "payments.write",
   ]);
   if ("response" in gate) return gate.response;
 
@@ -21,7 +23,7 @@ export async function GET() {
 
 /** Updates Order Received / Payment page content and wallet addresses in Neon Postgres. */
 export async function PATCH(request: Request) {
-  const gate = await requireAdminAnyPermission(["orders.write", "config.view"]);
+  const gate = await requireAdminPermission("payments.write");
   if ("response" in gate) return gate.response;
 
   let body: unknown;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useAttribution } from "@/lib/backlinks";
 import { clearCart, useCart, useShipState } from "@/lib/cart";
 import {
@@ -12,16 +12,46 @@ import {
 } from "@/lib/catalog";
 import {
   CRYPTO_CURRENCY_LIST,
+  DEFAULT_PAYMENT_SETTINGS,
   PAYMENT_OPTIONS,
   type PaymentMethod,
   SHIPPING_OPTIONS,
   type ShippingMethodId,
 } from "@/lib/payment";
+import {
+  type SavedAddress,
+  removeCheckoutAddress,
+  saveCheckoutAddress,
+  setDefaultCheckoutAddress,
+  useSavedAddresses,
+} from "@/lib/saved-addresses";
 import { states } from "@/lib/states";
 import { ArrowIcon } from "./illustrations";
 import { ProductArt } from "./product-card";
 
 type Errors = Record<string, string>;
+
+type AddressDraft = {
+  firstName: string;
+  lastName: string;
+  address: string;
+  apartment: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+};
+
+const EMPTY_DRAFT: AddressDraft = {
+  firstName: "",
+  lastName: "",
+  address: "",
+  apartment: "",
+  city: "",
+  state: "",
+  zip: "",
+  phone: "",
+};
 
 const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 
@@ -136,6 +166,20 @@ export default function CheckoutView() {
   const attribution = useAttribution();
   const touch = attribution.lastTouch ?? attribution.firstTouch;
   const [shipState, setShipState] = useShipState();
+
+  const savedStore = useSavedAddresses();
+  const [selectedAddressIdOverride, setSelectedAddressIdOverride] = useState<
+    string | null
+  >(null);
+  const [modeOverride, setModeOverride] = useState<"saved" | "new" | null>(
+    null,
+  );
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AddressDraft>(EMPTY_DRAFT);
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [emailValue, setEmailValue] = useState("");
+
   const [errors, setErrors] = useState<Errors>({});
   const [shipping, setShipping] = useState<ShippingMethodId>("express");
   const [payment, setPayment] = useState<PaymentMethod>("crypto");
@@ -144,6 +188,125 @@ export default function CheckoutView() {
   const [note, setNote] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [checkoutHints, setCheckoutHints] = useState({
+    giftCardCheckoutHint: DEFAULT_PAYMENT_SETTINGS.giftCardCheckoutHint,
+    bankCheckoutHint: DEFAULT_PAYMENT_SETTINGS.bankCheckoutHint,
+  });
+
+  const hasSavedAddresses = savedStore.addresses.length > 0;
+  const addressMode: "saved" | "new" = !hasSavedAddresses
+    ? "new"
+    : (modeOverride ?? "saved");
+
+  const activeSavedAddress: SavedAddress | null = hasSavedAddresses
+    ? (savedStore.addresses.find((a) => a.id === selectedAddressIdOverride) ??
+      savedStore.addresses.find((a) => a.id === savedStore.defaultId) ??
+      savedStore.addresses[0])
+    : null;
+
+  const currentEmail = emailTouched
+    ? emailValue
+    : (activeSavedAddress?.email ?? "");
+  const effectiveNewState = draft.state || shipState;
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/payment-content", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (
+          data: {
+            giftCardCheckoutHint?: string;
+            bankCheckoutHint?: string;
+          } | null,
+        ) => {
+          if (!active || !data) return;
+          setCheckoutHints({
+            giftCardCheckoutHint:
+              data.giftCardCheckoutHint ||
+              DEFAULT_PAYMENT_SETTINGS.giftCardCheckoutHint,
+            bankCheckoutHint:
+              data.bankCheckoutHint ||
+              DEFAULT_PAYMENT_SETTINGS.bankCheckoutHint,
+          });
+        },
+      )
+      .catch(() => {
+        // Keep default hints on transient error.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function clearFieldError(name: string) {
+    setErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }
+
+  function clearShippingErrors() {
+    setErrors((prev) => {
+      const shippingKeys = [
+        "firstName",
+        "lastName",
+        "address",
+        "city",
+        "state",
+        "zip",
+      ];
+      if (!shippingKeys.some((k) => Boolean(prev[k]))) return prev;
+      const next = { ...prev };
+      for (const k of shippingKeys) delete next[k];
+      return next;
+    });
+  }
+
+  function selectSavedAddress(addr: SavedAddress) {
+    setSelectedAddressIdOverride(addr.id);
+    setDefaultCheckoutAddress(addr.id);
+    setShipState(addr.state);
+    setModeOverride("saved");
+    setEditingAddressId(null);
+    clearShippingErrors();
+  }
+
+  function startEditSavedAddress(addr: SavedAddress) {
+    setEditingAddressId(addr.id);
+    setDraft({
+      firstName: addr.firstName,
+      lastName: addr.lastName,
+      address: addr.address,
+      apartment: addr.apartment,
+      city: addr.city,
+      state: addr.state,
+      zip: addr.zip,
+      phone: addr.phone,
+    });
+    setApartment(Boolean(addr.apartment));
+    setShipState(addr.state);
+    setSaveAddress(true);
+    setModeOverride("new");
+    clearShippingErrors();
+  }
+
+  function startNewAddress() {
+    setEditingAddressId(null);
+    setDraft({ ...EMPTY_DRAFT, state: shipState });
+    setApartment(false);
+    setSaveAddress(true);
+    setModeOverride("new");
+    clearShippingErrors();
+  }
+
+  function returnToSavedAddresses() {
+    setEditingAddressId(null);
+    setModeOverride("saved");
+    clearShippingErrors();
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -162,6 +325,8 @@ export default function CheckoutView() {
     }
 
     const get = (k: string) => String(formData.get(k) ?? "").trim();
+    const customerEmail = get("email");
+    const customerPhone = get("phone");
 
     const shippingAddress = {
       country: get("country") || "United Kingdom (UK)",
@@ -177,15 +342,15 @@ export default function CheckoutView() {
     const billingAddress = sameBilling
       ? shippingAddress
       : {
-          country: get("billingCountry") || "United Kingdom (UK)",
-          firstName: get("billingFirstName"),
-          lastName: get("billingLastName"),
-          address: get("billingAddress"),
-          apartment: get("billingApartment"),
-          city: get("billingCity"),
-          state: get("billingState"),
-          zip: get("billingZip"),
-        };
+        country: get("billingCountry") || "United Kingdom (UK)",
+        firstName: get("billingFirstName"),
+        lastName: get("billingLastName"),
+        address: get("billingAddress"),
+        apartment: get("billingApartment"),
+        city: get("billingCity"),
+        state: get("billingState"),
+        zip: get("billingZip"),
+      };
 
     setSubmitting(true);
     try {
@@ -193,8 +358,8 @@ export default function CheckoutView() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: get("email"),
-          phone: get("phone"),
+          email: customerEmail,
+          phone: customerPhone,
           orderNote: note ? get("note") : "",
           sameBilling,
           shippingAddress,
@@ -228,6 +393,29 @@ export default function CheckoutView() {
         return;
       }
 
+      if (addressMode === "saved" && activeSavedAddress) {
+        saveCheckoutAddress(
+          {
+            ...activeSavedAddress,
+            email: customerEmail || activeSavedAddress.email,
+          },
+          activeSavedAddress.id,
+        );
+      } else if (addressMode === "new" && saveAddress) {
+        saveCheckoutAddress(
+          {
+            ...shippingAddress,
+            phone: customerPhone,
+            email: customerEmail,
+          },
+          editingAddressId ?? undefined,
+        );
+      }
+
+      if (shippingAddress.state) {
+        setShipState(shippingAddress.state);
+      }
+
       clearCart();
       router.push(`/checkout/order-received/${data.accessToken}`);
     } catch {
@@ -241,13 +429,7 @@ export default function CheckoutView() {
     name,
     "aria-invalid": errors[name] ? true : undefined,
     className: `${control} ${errors[name] ? "border-[#c8102e]" : "border-ink"}`,
-    onChange: () =>
-      setErrors((prev) => {
-        if (!prev[name]) return prev;
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      }),
+    onChange: () => clearFieldError(name),
   });
 
   const subtotal = lines.reduce(
@@ -337,83 +519,335 @@ export default function CheckoutView() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@email.com"
-                  {...input("email")}
+                  name="email"
+                  aria-invalid={errors.email ? true : undefined}
+                  className={`${control} ${errors.email ? "border-[#c8102e]" : "border-ink"}`}
+                  value={currentEmail}
+                  onChange={(e) => {
+                    setEmailTouched(true);
+                    setEmailValue(e.target.value);
+                    clearFieldError("email");
+                  }}
                 />
               </Field>
-              <p className="mt-2 text-sm text-[#666]">
+              {/* <p className="mt-2 text-sm text-[#666]">
                 You are currently checking out as a guest.
-              </p>
+              </p> */}
             </section>
 
             <section>
-              <SectionTitle>Shipping address</SectionTitle>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                <Field label="Country / Region" className="sm:col-span-2">
-                  <select name="country" className={`${control} border-ink`}>
-                    <option>United Kingdom (UK)</option>
-                  </select>
-                </Field>
-                <Field label="First name" error={errors.firstName}>
-                  <input autoComplete="given-name" {...input("firstName")} />
-                </Field>
-                <Field label="Last name" error={errors.lastName}>
-                  <input autoComplete="family-name" {...input("lastName")} />
-                </Field>
-                <Field label="Address" error={errors.address} className="sm:col-span-2">
-                  <input autoComplete="address-line1" {...input("address")} />
-                </Field>
-                {apartment ? (
-                  <Field label="Apartment, suite, etc. (optional)" className="sm:col-span-2">
-                    <input
-                      name="apartment"
-                      autoComplete="address-line2"
-                      className={`${control} border-ink`}
-                    />
-                  </Field>
-                ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <SectionTitle>Shipping address</SectionTitle>
+                {hasSavedAddresses && addressMode === "new" && (
                   <button
                     type="button"
-                    onClick={() => setApartment(true)}
-                    className="-my-1.5 cursor-pointer justify-self-start text-[15px] font-medium underline underline-offset-4 sm:col-span-2"
+                    onClick={returnToSavedAddresses}
+                    className="cursor-pointer text-sm font-bold underline underline-offset-4"
                   >
-                    + Add apartment, suite, etc.
+                    ← Use saved address
                   </button>
                 )}
-                <Field label="Town / City" error={errors.city}>
-                  <input autoComplete="address-level2" {...input("city")} />
-                </Field>
-                <Field label="County / Region" error={errors.state}>
-                  <select
-                    autoComplete="address-level1"
-                    {...input("state")}
-                    value={shipState}
-                    onChange={(e) => {
-                      setShipState(e.target.value);
-                      input("state").onChange();
-                    }}
-                  >
-                    <option value="">Select your county / region</option>
-                    {states.map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Postcode" error={errors.zip}>
-                  <input
-                    autoComplete="postal-code"
-                    placeholder="e.g. SW1A 1AA"
-                    {...input("zip")}
-                  />
-                </Field>
-                <Field label="Phone (optional)">
-                  <input
-                    name="phone"
-                    type="tel"
-                    autoComplete="tel"
-                    className={`${control} border-ink`}
-                  />
-                </Field>
               </div>
+
+              {addressMode === "saved" && activeSavedAddress ? (
+                <div className="mt-5 space-y-3">
+                  <input
+                    type="hidden"
+                    name="country"
+                    value={activeSavedAddress.country}
+                  />
+                  <input
+                    type="hidden"
+                    name="firstName"
+                    value={activeSavedAddress.firstName}
+                  />
+                  <input
+                    type="hidden"
+                    name="lastName"
+                    value={activeSavedAddress.lastName}
+                  />
+                  <input
+                    type="hidden"
+                    name="address"
+                    value={activeSavedAddress.address}
+                  />
+                  <input
+                    type="hidden"
+                    name="apartment"
+                    value={activeSavedAddress.apartment}
+                  />
+                  <input
+                    type="hidden"
+                    name="city"
+                    value={activeSavedAddress.city}
+                  />
+                  <input
+                    type="hidden"
+                    name="state"
+                    value={activeSavedAddress.state}
+                  />
+                  <input
+                    type="hidden"
+                    name="zip"
+                    value={activeSavedAddress.zip}
+                  />
+                  <input
+                    type="hidden"
+                    name="phone"
+                    value={activeSavedAddress.phone}
+                  />
+
+                  <div className="space-y-3">
+                    {savedStore.addresses.map((addr) => {
+                      const isSelected = addr.id === activeSavedAddress.id;
+                      const isDefault = addr.id === savedStore.defaultId;
+                      return (
+                        <div
+                          key={addr.id}
+                          className={`rounded-2xl border-2 border-ink p-4 transition ${isSelected ? "bg-sand/60" : "bg-white"
+                            }`}
+                        >
+                          <div className="flex flex-wrap items-start gap-3">
+                            <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                              <input
+                                type="radio"
+                                name="savedAddressSelection"
+                                checked={isSelected}
+                                onChange={() => selectSavedAddress(addr)}
+                                className="mt-1 size-5 shrink-0 accent-ink"
+                              />
+                              <div className="min-w-0 space-y-0.5 text-[15px] leading-6">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-extrabold text-ink">
+                                    {addr.firstName} {addr.lastName}
+                                  </span>
+                                  {isDefault && (
+                                    <span className="rounded-full border border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase">
+                                      Default
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-ink/85">
+                                  {addr.address}
+                                  {addr.apartment ? `, ${addr.apartment}` : ""}
+                                </p>
+                                <p className="text-ink/85">
+                                  {addr.city}, {addr.state} {addr.zip}
+                                </p>
+                                <p className="text-xs font-semibold text-ink/60">
+                                  {addr.country}
+                                  {addr.phone ? ` · ${addr.phone}` : ""}
+                                </p>
+                              </div>
+                            </label>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => startEditSavedAddress(addr)}
+                                className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3 text-xs font-bold hover:bg-lime"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeCheckoutAddress(addr.id)}
+                                className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink/35 bg-white px-3 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={startNewAddress}
+                    className="inline-flex h-11 cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-cream px-5 text-sm font-bold hover:bg-lime"
+                  >
+                    + Ship to a different address
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <Field label="Country / Region" className="sm:col-span-2">
+                    <select
+                      name="country"
+                      disabled
+                      title="We only operate in the UK for now."
+                      className={`${control} cursor-not-allowed border-ink/50 bg-sand/60 text-ink/75`}
+                    >
+                      <option value="United Kingdom (UK)">
+                        United Kingdom (UK)
+                      </option>
+                    </select>
+                    <span className="mt-1.5 block text-xs font-medium text-ink/65">
+                      We only operate in the UK for now.
+                    </span>
+                  </Field>
+                  <Field label="First name" error={errors.firstName}>
+                    <input
+                      autoComplete="given-name"
+                      name="firstName"
+                      aria-invalid={errors.firstName ? true : undefined}
+                      className={`${control} ${errors.firstName ? "border-[#c8102e]" : "border-ink"}`}
+                      value={draft.firstName}
+                      onChange={(e) => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          firstName: e.target.value,
+                        }));
+                        clearFieldError("firstName");
+                      }}
+                    />
+                  </Field>
+                  <Field label="Last name" error={errors.lastName}>
+                    <input
+                      autoComplete="family-name"
+                      name="lastName"
+                      aria-invalid={errors.lastName ? true : undefined}
+                      className={`${control} ${errors.lastName ? "border-[#c8102e]" : "border-ink"}`}
+                      value={draft.lastName}
+                      onChange={(e) => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }));
+                        clearFieldError("lastName");
+                      }}
+                    />
+                  </Field>
+                  <Field
+                    label="Address"
+                    error={errors.address}
+                    className="sm:col-span-2"
+                  >
+                    <input
+                      autoComplete="address-line1"
+                      name="address"
+                      aria-invalid={errors.address ? true : undefined}
+                      className={`${control} ${errors.address ? "border-[#c8102e]" : "border-ink"}`}
+                      value={draft.address}
+                      onChange={(e) => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          address: e.target.value,
+                        }));
+                        clearFieldError("address");
+                      }}
+                    />
+                  </Field>
+                  {apartment ? (
+                    <Field
+                      label="Apartment, suite, etc. (optional)"
+                      className="sm:col-span-2"
+                    >
+                      <input
+                        name="apartment"
+                        autoComplete="address-line2"
+                        className={`${control} border-ink`}
+                        value={draft.apartment}
+                        onChange={(e) =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            apartment: e.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setApartment(true)}
+                      className="-my-1.5 cursor-pointer justify-self-start text-[15px] font-medium underline underline-offset-4 sm:col-span-2"
+                    >
+                      + Add apartment, suite, etc.
+                    </button>
+                  )}
+                  <Field label="Town / City" error={errors.city}>
+                    <input
+                      autoComplete="address-level2"
+                      name="city"
+                      aria-invalid={errors.city ? true : undefined}
+                      className={`${control} ${errors.city ? "border-[#c8102e]" : "border-ink"}`}
+                      value={draft.city}
+                      onChange={(e) => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          city: e.target.value,
+                        }));
+                        clearFieldError("city");
+                      }}
+                    />
+                  </Field>
+                  <Field label="County / Region" error={errors.state}>
+                    <select
+                      autoComplete="address-level1"
+                      name="state"
+                      aria-invalid={errors.state ? true : undefined}
+                      className={`${control} ${errors.state ? "border-[#c8102e]" : "border-ink"}`}
+                      value={effectiveNewState}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setDraft((prev) => ({ ...prev, state: value }));
+                        setShipState(value);
+                        clearFieldError("state");
+                      }}
+                    >
+                      <option value="">Select your county / region</option>
+                      {states.map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Postcode" error={errors.zip}>
+                    <input
+                      autoComplete="postal-code"
+                      placeholder="e.g. SW1A 1AA"
+                      name="zip"
+                      aria-invalid={errors.zip ? true : undefined}
+                      className={`${control} ${errors.zip ? "border-[#c8102e]" : "border-ink"}`}
+                      value={draft.zip}
+                      onChange={(e) => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          zip: e.target.value,
+                        }));
+                        clearFieldError("zip");
+                      }}
+                    />
+                  </Field>
+                  <Field label="Phone (optional)">
+                    <input
+                      name="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      className={`${control} border-ink`}
+                      value={draft.phone}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+
+                  <label className="flex cursor-pointer items-center gap-3 text-[15px] font-medium sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={saveAddress}
+                      onChange={(e) => setSaveAddress(e.target.checked)}
+                      className="size-6 shrink-0 accent-ink"
+                    />
+                    Save this address as my default for future orders
+                  </label>
+                </div>
+              )}
+
               <label className="mt-5 flex cursor-pointer items-center gap-3 text-[15px]">
                 <input
                   type="checkbox"
@@ -432,10 +866,17 @@ export default function CheckoutView() {
                     <Field label="Country / Region" className="sm:col-span-2">
                       <select
                         name="billingCountry"
-                        className={`${control} border-ink`}
+                        disabled
+                        title="We only operate in the UK for now."
+                        className={`${control} cursor-not-allowed border-ink/50 bg-sand/60 text-ink/75`}
                       >
-                        <option>United Kingdom (UK)</option>
+                        <option value="United Kingdom (UK)">
+                          United Kingdom (UK)
+                        </option>
                       </select>
+                      <span className="mt-1.5 block text-xs font-medium text-ink/65">
+                        We only operate in the UK for now.
+                      </span>
                     </Field>
                     <Field label="First name" error={errors.billingFirstName}>
                       <input {...input("billingFirstName")} />
@@ -517,8 +958,8 @@ export default function CheckoutView() {
                   ) : (
                     <p className="px-[18px] pb-5 text-[15px] leading-6 text-ink/80">
                       {id === "gift-card"
-                        ? "Purchase a Steam or Apple Gift Card and email clear photos of the card and receipt after placing your order."
-                        : "Place your order to receive our UK bank transfer details by email shortly after confirmation."}
+                        ? checkoutHints.giftCardCheckoutHint
+                        : checkoutHints.bankCheckoutHint}
                     </p>
                   )
                 }

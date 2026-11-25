@@ -10,6 +10,7 @@ import {
   type OrderAddress,
   type OrderRecord,
   type OrderStatus,
+  type PaymentSettings,
   buildCryptoPaymentUri,
   formatOrderDate,
   getPaymentLabel,
@@ -200,13 +201,14 @@ function AddressBlock({
 
 export default function OrderReceivedView({
   order: initialOrder,
-  supportEmail,
+  settings,
   qrDataUrl,
 }: {
   order: OrderRecord;
-  supportEmail: string;
+  settings: PaymentSettings;
   qrDataUrl: string | null;
 }) {
+  const supportEmail = settings.supportEmail;
   const [order, setOrder] = useState<OrderRecord>(initialOrder);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -337,7 +339,7 @@ export default function OrderReceivedView({
             </em>
           </h1>
           <p className="mt-3 text-[17px] leading-7 text-ink/80">
-            Thank you. Your order has been received.
+            {settings.orderReceivedSubtitle}
           </p>
         </div>
 
@@ -397,10 +399,7 @@ export default function OrderReceivedView({
                 Payment instructions
               </p>
               <h2 className="mt-1 text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
-                Pay with{" "}
-                <em className="font-serif text-[1.08em] leading-[0] font-normal">
-                  gift cards
-                </em>
+                {settings.giftCardTitle}
               </h2>
             </div>
             <button
@@ -416,47 +415,37 @@ export default function OrderReceivedView({
           </div>
 
           <div className="mt-6 space-y-4 text-[17px] leading-7">
-            <p>
-              To pay with a gift card, simply purchase any of the gift cards
-              which we accept:
-            </p>
+            <p className="whitespace-pre-line">{settings.giftCardIntro}</p>
             <ol className="space-y-2 rounded-2xl border-2 border-ink bg-cream p-5 font-bold">
-              <li>1. Steam Gift Card</li>
-              <li>2. Apple Gift Card (The gift card for everything Apple)</li>
+              {settings.giftCardAcceptedCards.map((card, index) => (
+                <li key={`${card}-${index}`}>
+                  {index + 1}. {card}
+                </li>
+              ))}
             </ol>
-            <p>and scratch the code.</p>
-            <p>
-              When done, send us clear pictures of the card (front and back)
-              showing the scratch codes on the card, not forgetting the receipt
-              which was given on purchase of the gift card, to our company
-              email:{" "}
+            {settings.giftCardInstructions
+              .split(/\n{2,}/)
+              .map((paragraph) => paragraph.trim())
+              .filter(Boolean)
+              .map((paragraph, idx) => (
+                <p key={idx} className="whitespace-pre-line">
+                  {paragraph}
+                </p>
+              ))}
+            <div className="rounded-2xl border-2 border-ink bg-sand/70 p-4 text-[16px]">
+              <span className="font-bold">Company email: </span>
               <a
                 href={`mailto:${supportEmail}?subject=${encodeURIComponent(`Order #${order.orderNumber} Gift Card Payment`)}`}
                 className="font-extrabold underline underline-offset-4"
               >
                 {supportEmail}
-              </a>
-            </p>
-            <p>
-              If the card balance is sufficient to cover the total purchase
-              amount ({formatPrice(order.total)}), the transaction will be
-              approved.
-            </p>
-            <p>
-              If you have any questions or concerns about using gift cards as a
-              payment option, please don&apos;t hesitate to{" "}
-              <Link
-                href="/faq#contact"
-                className="font-bold underline underline-offset-4"
-              >
-                contact us
-              </Link>
-              .
-            </p>
-            <p className="pt-2 font-semibold">
-              Thank you for choosing Momo Eliquid for your purchases.
-              <br />
-              Best regards.
+              </a>{" "}
+              <span className="text-ink/75">
+                (Order total: {formatPrice(order.total)} · Ref #{order.orderNumber})
+              </span>
+            </div>
+            <p className="pt-2 font-semibold whitespace-pre-line">
+              {settings.giftCardClosing}
             </p>
           </div>
 
@@ -492,10 +481,7 @@ export default function OrderReceivedView({
                 Payment instructions
               </p>
               <h2 className="mt-1 text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
-                Direct bank{" "}
-                <em className="font-serif text-[1.08em] leading-[0] font-normal">
-                  transfer
-                </em>
+                {settings.bankTitle}
               </h2>
             </div>
             <button
@@ -510,26 +496,70 @@ export default function OrderReceivedView({
             </button>
           </div>
 
-          <div className="mt-6 rounded-2xl border-2 border-ink bg-cream p-6 text-[17px] leading-7">
-            <p>
-              Account details will be emailed shortly to{" "}
-              <strong className="font-extrabold">{order.email}</strong>. If you
-              don&apos;t receive them, please contact us via our{" "}
-              <Link
-                href="/faq#contact"
-                className="font-bold underline underline-offset-4"
-              >
-                contact page
-              </Link>{" "}
-              or email{" "}
-              <a
-                href={`mailto:${supportEmail}?subject=${encodeURIComponent(`Order #${order.orderNumber} Bank Transfer Details`)}`}
-                className="font-extrabold underline underline-offset-4"
-              >
-                {supportEmail}
-              </a>
-              .
-            </p>
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl border-2 border-ink bg-cream p-6 text-[17px] leading-7">
+              <p className="whitespace-pre-line">{settings.bankInstructions}</p>
+              <p className="mt-3 text-[15px] text-ink/80">
+                Order email: <strong className="text-ink">{order.email}</strong>{" "}
+                · Support:{" "}
+                <a
+                  href={`mailto:${supportEmail}?subject=${encodeURIComponent(`Order #${order.orderNumber} Bank Transfer Details`)}`}
+                  className="font-extrabold text-ink underline underline-offset-4"
+                >
+                  {supportEmail}
+                </a>
+              </p>
+            </div>
+
+            {(settings.bankAccountName ||
+              settings.bankSortCode ||
+              settings.bankAccountNumber) && (
+              <div className="rounded-2xl border-2 border-ink bg-sand p-5">
+                <p className="text-xs font-extrabold tracking-[0.1em] uppercase text-ink/65">
+                  UK Bank Details
+                </p>
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {settings.bankAccountName && (
+                    <div className="rounded-xl bg-white p-3">
+                      <dt className="text-[11px] font-bold uppercase text-ink/60">
+                        Account Name
+                      </dt>
+                      <dd className="mt-1 font-extrabold">
+                        {settings.bankAccountName}
+                      </dd>
+                    </div>
+                  )}
+                  {settings.bankSortCode && (
+                    <div className="rounded-xl bg-white p-3">
+                      <dt className="text-[11px] font-bold uppercase text-ink/60">
+                        Sort Code
+                      </dt>
+                      <dd className="mt-1 font-mono font-extrabold">
+                        {settings.bankSortCode}
+                      </dd>
+                    </div>
+                  )}
+                  {settings.bankAccountNumber && (
+                    <div className="rounded-xl bg-white p-3">
+                      <dt className="text-[11px] font-bold uppercase text-ink/60">
+                        Account Number
+                      </dt>
+                      <dd className="mt-1 font-mono font-extrabold">
+                        {settings.bankAccountNumber}
+                      </dd>
+                    </div>
+                  )}
+                  <div className="rounded-xl bg-white p-3">
+                    <dt className="text-[11px] font-bold uppercase text-ink/60">
+                      Reference
+                    </dt>
+                    <dd className="mt-1 font-mono font-extrabold">
+                      #{order.orderNumber}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -566,14 +596,13 @@ export default function OrderReceivedView({
               {/* Left payment instructions & live status */}
               <div>
                 <h2 className="text-[28px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[34px]">
-                  Complete your{" "}
-                  <em className="font-serif text-[1.08em] leading-[0] font-normal">
-                    payment
-                  </em>
+                  {settings.cryptoTitle}
                 </h2>
                 <p className="mt-2 text-[16px] leading-6 text-ink/80">
-                  Please send the exact amount of {cryptoMeta.ticker} to the
-                  address below.
+                  {settings.cryptoSubtitle.replaceAll(
+                    "{TICKER}",
+                    cryptoMeta.ticker,
+                  )}
                 </p>
 
                 <div className="mt-5 flex items-start gap-3 rounded-2xl border-2 border-ink bg-sand p-4">
@@ -582,9 +611,8 @@ export default function OrderReceivedView({
                   </span>
                   <div className="text-sm leading-6">
                     <p className="font-extrabold">Important</p>
-                    <p className="text-ink/85">
-                      Send the exact amount shown to help ensure the payment is
-                      detected automatically.
+                    <p className="text-ink/85 whitespace-pre-line">
+                      {settings.cryptoImportantNotice}
                     </p>
                   </div>
                 </div>

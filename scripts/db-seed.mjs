@@ -275,6 +275,8 @@ const SEED_ROLES = [
       "overview.view",
       "orders.read",
       "orders.write",
+      "payments.read",
+      "payments.write",
       "catalog.read",
       "catalog.write",
       "inventory.read",

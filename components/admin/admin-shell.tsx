@@ -13,6 +13,12 @@ import {
   formatPrice,
 } from "@/lib/catalog";
 import {
+  type AdminOrderStats,
+  type OrderRecord,
+  type PaymentSettings,
+  getPaymentLabel,
+} from "@/lib/payment";
+import {
   type AdminRole,
   type AdminUserRecord,
   hasAnyPermission,
@@ -21,11 +27,15 @@ import {
 import CatalogTab from "./catalog-tab";
 import ConfigTab, { type AdminConfigPayload } from "./config-tab";
 import InventoryTab from "./inventory-tab";
+import OrdersTab from "./orders-tab";
+import PaymentsTab from "./payments-tab";
 import RolesTab from "./roles-tab";
 import UsersTab from "./users-tab";
 
 export type AdminTabId =
   | "overview"
+  | "orders"
+  | "payments"
   | "catalog"
   | "inventory"
   | "users"
@@ -34,6 +44,8 @@ export type AdminTabId =
 
 const TABS: { id: AdminTabId; label: string; hint: string }[] = [
   { id: "overview", label: "Overview", hint: "Store KPIs & alerts" },
+  { id: "orders", label: "Orders", hint: "Incoming orders & status" },
+  { id: "payments", label: "Payments", hint: "Payment page copy & wallets" },
   { id: "catalog", label: "Catalog", hint: "Collections & taxonomy" },
   { id: "inventory", label: "Inventory", hint: "Products, pricing & stock" },
   { id: "users", label: "Users", hint: "Accounts, roles & access" },
@@ -61,6 +73,22 @@ function TabIcon({ id }: { id: AdminTabId }) {
           <rect x="14" y="3" width="7" height="7" rx="1.5" />
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      );
+    case "orders":
+      return (
+        <svg {...shared}>
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+          <path d="M3 6h18" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      );
+    case "payments":
+      return (
+        <svg {...shared}>
+          <rect x="2" y="5" width="20" height="14" rx="2" />
+          <path d="M2 10h20" />
+          <path d="M6 15h4" />
         </svg>
       );
     case "catalog":
@@ -120,6 +148,18 @@ export default function AdminShell({
               "overview.view",
               user.isSuperAdmin,
             );
+          case "orders":
+            return hasAnyPermission(
+              user.permissions,
+              ["orders.read", "orders.write"],
+              user.isSuperAdmin,
+            );
+          case "payments":
+            return hasAnyPermission(
+              user.permissions,
+              ["payments.read", "payments.write"],
+              user.isSuperAdmin,
+            );
           case "catalog":
             return hasAnyPermission(
               user.permissions,
@@ -158,6 +198,10 @@ export default function AdminShell({
   const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab);
   const [catalogs, setCatalogs] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [orderStats, setOrderStats] = useState<AdminOrderStats | null>(null);
+  const [paymentSettings, setPaymentSettings] =
+    useState<PaymentSettings | null>(null);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [users, setUsers] = useState<AdminUserRecord[]>([]);
   const [config, setConfig] = useState<AdminConfigPayload | null>(null);
@@ -175,6 +219,16 @@ export default function AdminShell({
       : allowedTabs[0].id;
   }, [allowedTabs, activeTab]);
 
+  const canFetchOrders = hasAnyPermission(
+    user.permissions,
+    ["orders.read", "orders.write"],
+    user.isSuperAdmin,
+  );
+  const canFetchPaymentSettings = hasAnyPermission(
+    user.permissions,
+    ["payments.read", "payments.write"],
+    user.isSuperAdmin,
+  );
   const canFetchCatalogs = hasAnyPermission(
     user.permissions,
     ["catalog.read", "inventory.read", "overview.view"],
@@ -193,6 +247,17 @@ export default function AdminShell({
   const canFetchConfig = hasPermission(
     user.permissions,
     "config.view",
+    user.isSuperAdmin,
+  );
+
+  const canWriteOrders = hasPermission(
+    user.permissions,
+    "orders.write",
+    user.isSuperAdmin,
+  );
+  const canWritePayments = hasPermission(
+    user.permissions,
+    "payments.write",
     user.isSuperAdmin,
   );
 
@@ -223,12 +288,17 @@ export default function AdminShell({
 
   const loadAll = useCallback(async () => {
     if (
+      !canFetchOrders &&
+      !canFetchPaymentSettings &&
       !canFetchCatalogs &&
       !canFetchProducts &&
       !canFetchUsersAndRoles &&
       !canFetchConfig
     ) {
       return {
+        orders: [] as OrderRecord[],
+        orderStats: null as AdminOrderStats | null,
+        paymentSettings: null as PaymentSettings | null,
         catalogs: [] as Category[],
         products: [] as Product[],
         roles: [] as AdminRole[],
@@ -246,34 +316,54 @@ export default function AdminShell({
       return res.json();
     };
 
-    const [catJson, prodJson, rolesJson, usersJson, cfgJson] =
-      await Promise.all([
-        canFetchCatalogs
-          ? (fetchJson("/api/admin/catalogs") as Promise<{
-              catalogs?: Category[];
-            } | null>)
-          : Promise.resolve(null),
-        canFetchProducts
-          ? (fetchJson("/api/admin/products") as Promise<{
-              products?: Product[];
-            } | null>)
-          : Promise.resolve(null),
-        canFetchUsersAndRoles
-          ? (fetchJson("/api/admin/roles") as Promise<{
-              roles?: AdminRole[];
-            } | null>)
-          : Promise.resolve(null),
-        canFetchUsersAndRoles
-          ? (fetchJson("/api/admin/users") as Promise<{
-              users?: AdminUserRecord[];
-            } | null>)
-          : Promise.resolve(null),
-        canFetchConfig
-          ? (fetchJson("/api/admin/config") as Promise<AdminConfigPayload | null>)
-          : Promise.resolve(null),
-      ]);
+    const [
+      ordersJson,
+      payJson,
+      catJson,
+      prodJson,
+      rolesJson,
+      usersJson,
+      cfgJson,
+    ] = await Promise.all([
+      canFetchOrders
+        ? (fetchJson("/api/admin/orders") as Promise<{
+            orders?: OrderRecord[];
+            stats?: AdminOrderStats;
+          } | null>)
+        : Promise.resolve(null),
+      canFetchPaymentSettings
+        ? (fetchJson("/api/admin/payment-settings") as Promise<{
+            paymentSettings?: PaymentSettings;
+          } | null>)
+        : Promise.resolve(null),
+      canFetchCatalogs
+        ? (fetchJson("/api/admin/catalogs") as Promise<{
+            catalogs?: Category[];
+          } | null>)
+        : Promise.resolve(null),
+      canFetchProducts
+        ? (fetchJson("/api/admin/products") as Promise<{
+            products?: Product[];
+          } | null>)
+        : Promise.resolve(null),
+      canFetchUsersAndRoles
+        ? (fetchJson("/api/admin/roles") as Promise<{
+            roles?: AdminRole[];
+          } | null>)
+        : Promise.resolve(null),
+      canFetchUsersAndRoles
+        ? (fetchJson("/api/admin/users") as Promise<{
+            users?: AdminUserRecord[];
+          } | null>)
+        : Promise.resolve(null),
+      canFetchConfig
+        ? (fetchJson("/api/admin/config") as Promise<AdminConfigPayload | null>)
+        : Promise.resolve(null),
+    ]);
 
     if (
+      (canFetchOrders && !ordersJson) ||
+      (canFetchPaymentSettings && !payJson) ||
       (canFetchCatalogs && !catJson) ||
       (canFetchProducts && !prodJson) ||
       (canFetchUsersAndRoles && (!rolesJson || !usersJson)) ||
@@ -283,6 +373,9 @@ export default function AdminShell({
     }
 
     return {
+      orders: Array.isArray(ordersJson?.orders) ? ordersJson.orders : [],
+      orderStats: ordersJson?.stats ?? null,
+      paymentSettings: payJson?.paymentSettings ?? null,
       catalogs: Array.isArray(catJson?.catalogs) ? catJson.catalogs : [],
       products: Array.isArray(prodJson?.products) ? prodJson.products : [],
       roles: Array.isArray(rolesJson?.roles) ? rolesJson.roles : [],
@@ -290,6 +383,8 @@ export default function AdminShell({
       config: cfgJson,
     };
   }, [
+    canFetchOrders,
+    canFetchPaymentSettings,
     canFetchCatalogs,
     canFetchProducts,
     canFetchUsersAndRoles,
@@ -304,6 +399,9 @@ export default function AdminShell({
         onFlash("error", "Unable to refresh one or more admin API endpoints.");
         return;
       }
+      setOrders(data.orders);
+      setOrderStats(data.orderStats);
+      setPaymentSettings(data.paymentSettings);
       setCatalogs(data.catalogs);
       setProducts(data.products);
       setRoles(data.roles);
@@ -326,6 +424,9 @@ export default function AdminShell({
           onFlash("error", "Unable to load one or more admin API endpoints.");
           return;
         }
+        setOrders(data.orders);
+        setOrderStats(data.orderStats);
+        setPaymentSettings(data.paymentSettings);
         setCatalogs(data.catalogs);
         setProducts(data.products);
         setRoles(data.roles);
@@ -367,8 +468,12 @@ export default function AdminShell({
     ? (allowedTabs.find((t) => t.id === effectiveTab) ?? allowedTabs[0])
     : null;
 
+  const canOpenOrdersTab = allowedTabs.some((t) => t.id === "orders");
+  const canOpenPaymentsTab = allowedTabs.some((t) => t.id === "payments");
   const canOpenCatalogTab = allowedTabs.some((t) => t.id === "catalog");
   const canOpenInventoryTab = allowedTabs.some((t) => t.id === "inventory");
+  const pendingOrdersCount =
+    (orderStats?.pendingCount ?? 0) + (orderStats?.submittedCount ?? 0);
 
   return (
     <div className="min-h-dvh bg-cream text-ink lg:grid lg:grid-cols-[276px_minmax(0,1fr)]">
@@ -395,15 +500,17 @@ export default function AdminShell({
           {allowedTabs.map((tab) => {
             const isActive = effectiveTab === tab.id;
             const badgeText =
-              tab.id === "catalog" && canFetchCatalogs
-                ? String(catalogs.length)
-                : tab.id === "inventory" && canFetchProducts
-                  ? String(products.length)
-                  : tab.id === "users" && canFetchUsersAndRoles
-                    ? String(users.length)
-                    : tab.id === "roles" && canFetchUsersAndRoles
-                      ? String(roles.length)
-                      : undefined;
+              tab.id === "orders" && canFetchOrders
+                ? String(orderStats?.totalOrders ?? orders.length)
+                : tab.id === "catalog" && canFetchCatalogs
+                  ? String(catalogs.length)
+                  : tab.id === "inventory" && canFetchProducts
+                    ? String(products.length)
+                    : tab.id === "users" && canFetchUsersAndRoles
+                      ? String(users.length)
+                      : tab.id === "roles" && canFetchUsersAndRoles
+                        ? String(roles.length)
+                        : undefined;
 
             return (
               <button
@@ -484,6 +591,17 @@ export default function AdminShell({
             </div>
 
             <div className="flex items-center gap-2.5">
+              {canOpenOrdersTab &&
+                pendingOrdersCount > 0 &&
+                effectiveTab !== "orders" && (
+                  <button
+                    type="button"
+                    onClick={() => selectTab("orders")}
+                    className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-3.5 text-xs font-extrabold text-ink"
+                  >
+                    {pendingOrdersCount} awaiting payment
+                  </button>
+                )}
               {canOpenInventoryTab &&
                 lowStockProducts.length > 0 &&
                 effectiveTab !== "inventory" && (
@@ -591,6 +709,24 @@ export default function AdminShell({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {canOpenOrdersTab && (
+                    <button
+                      type="button"
+                      onClick={() => selectTab("orders")}
+                      className="inline-flex h-10 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-4 text-xs font-extrabold text-ink hover:bg-teal"
+                    >
+                      View orders ({orderStats?.totalOrders ?? orders.length}) →
+                    </button>
+                  )}
+                  {canOpenPaymentsTab && (
+                    <button
+                      type="button"
+                      onClick={() => selectTab("payments")}
+                      className="inline-flex h-10 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-4 text-xs font-bold hover:bg-sand"
+                    >
+                      Payment page content →
+                    </button>
+                  )}
                   {canOpenCatalogTab && (
                     <button
                       type="button"
@@ -752,7 +888,73 @@ export default function AdminShell({
                   )}
                 </section>
               </div>
+
+              {canFetchOrders && (
+                <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+                  <div className="flex items-center justify-between gap-2 border-b border-ink/15 pb-4">
+                    <h3 className="text-lg font-extrabold">
+                      Recent storefront orders
+                    </h3>
+                    {canOpenOrdersTab && (
+                      <button
+                        type="button"
+                        onClick={() => selectTab("orders")}
+                        className="cursor-pointer text-xs font-bold underline underline-offset-4"
+                      >
+                        Open Orders tab
+                      </button>
+                    )}
+                  </div>
+                  {orders.length === 0 ? (
+                    <p className="mt-4 text-sm text-ink/70">
+                      No orders have been placed yet.
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-2.5">
+                      {orders.slice(0, 5).map((o) => (
+                        <li
+                          key={o.id}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-cream/60 px-4 py-3 text-sm"
+                        >
+                          <div>
+                            <p className="font-extrabold">
+                              #{o.orderNumber} · {o.shippingAddress.firstName}{" "}
+                              {o.shippingAddress.lastName}
+                            </p>
+                            <p className="text-xs text-ink/65">
+                              {getPaymentLabel(o.paymentMethod)} · {o.email}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-extrabold">
+                              {formatPrice(o.total)}
+                            </p>
+                            <p className="text-xs font-bold uppercase text-ink/70">
+                              {o.status.replace("_", " ")}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
             </div>
+          ) : effectiveTab === "orders" ? (
+            <OrdersTab
+              orders={orders}
+              stats={orderStats}
+              canWrite={canWriteOrders}
+              onMutated={fetchAll}
+              onFlash={onFlash}
+            />
+          ) : effectiveTab === "payments" ? (
+            <PaymentsTab
+              settings={paymentSettings}
+              canWrite={canWritePayments}
+              onMutated={fetchAll}
+              onFlash={onFlash}
+            />
           ) : effectiveTab === "catalog" ? (
             <CatalogTab
               catalogs={catalogs}

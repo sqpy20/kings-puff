@@ -50,7 +50,7 @@ async function OrderReceivedContent({ params }: Props) {
   return (
     <OrderReceivedView
       order={order}
-      supportEmail={settings.supportEmail}
+      settings={settings}
       qrDataUrl={qrDataUrl}
     />
   );

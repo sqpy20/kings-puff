@@ -30,6 +30,28 @@ const MODULE_ROWS: readonly ModuleRow[] = [
     viewLabel: "View",
   },
   {
+    id: "orders",
+    title: "Orders",
+    subtitle:
+      "Incoming customer orders, payment methods, shipping details & status updates",
+    badgeColor: "bg-orange",
+    viewKey: "orders.read",
+    viewLabel: "View",
+    manageKey: "orders.write",
+    manageLabel: "Manage",
+  },
+  {
+    id: "payments",
+    title: "Payments",
+    subtitle:
+      "Order Received page copy, Gift Card & Bank Transfer instructions & crypto wallets",
+    badgeColor: "bg-purple",
+    viewKey: "payments.read",
+    viewLabel: "View",
+    manageKey: "payments.write",
+    manageLabel: "Manage",
+  },
+  {
     id: "catalog",
     title: "Catalog",
     subtitle: "Storefront collections, slugs, sort order, and accent themes",
@@ -81,6 +103,8 @@ const MODULE_ROWS: readonly ModuleRow[] = [
 
 const READ_ONLY_KEYS: PermissionKey[] = [
   "overview.view",
+  "orders.read",
+  "payments.read",
   "catalog.read",
   "inventory.read",
   "users.read",
@@ -90,6 +114,10 @@ const READ_ONLY_KEYS: PermissionKey[] = [
 
 const STORE_MANAGER_KEYS: PermissionKey[] = [
   "overview.view",
+  "orders.read",
+  "orders.write",
+  "payments.read",
+  "payments.write",
   "catalog.read",
   "catalog.write",
   "inventory.read",
