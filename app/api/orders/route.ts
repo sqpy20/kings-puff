@@ -2,10 +2,12 @@ import { isMailConfigured, sendOrderEmails } from "@/lib/mail";
 import {
   OrderDataError,
   createOrder,
+  createOrderNotification,
   getPaymentSettings,
 } from "@/lib/orders";
+import { listActiveSuperAdminEmails } from "@/lib/rbac-data";
 
-/** Public endpoint that validates checkout payloads, persists an order, and sends emails. */
+/** Public endpoint that validates checkout payloads, persists an order, and notifies Super Admins + customer. */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -27,10 +29,22 @@ export async function POST(request: Request) {
   try {
     const order = await createOrder(body as Record<string, unknown>);
 
+    try {
+      await createOrderNotification(order, "new_order");
+    } catch (notifyErr) {
+      console.error("Failed to create Super Admin order notification:", notifyErr);
+    }
+
     if (isMailConfigured()) {
       try {
-        const settings = await getPaymentSettings();
-        await sendOrderEmails(order, settings);
+        const [settings, superAdminEmails] = await Promise.all([
+          getPaymentSettings(),
+          listActiveSuperAdminEmails().catch((err) => {
+            console.error("Failed to load Super Admin emails:", err);
+            return [] as string[];
+          }),
+        ]);
+        await sendOrderEmails(order, settings, superAdminEmails);
       } catch (mailErr) {
         console.error("Failed to dispatch order emails:", mailErr);
       }

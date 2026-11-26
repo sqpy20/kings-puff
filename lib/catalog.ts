@@ -58,6 +58,7 @@ export type Product = {
 
 export const FREE_SHIPPING_THRESHOLD = 50;
 export const LOW_STOCK_THRESHOLD = 10;
+export const MIN_ORDER_AMOUNT = 200;
 
 export function formatPrice(amount: number): string {
   return `£${amount.toFixed(2)}`;

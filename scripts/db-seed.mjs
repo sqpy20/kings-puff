@@ -456,6 +456,26 @@ async function main() {
         ADD COLUMN IF NOT EXISTS crypto_expiry_minutes INTEGER NOT NULL DEFAULT 120;
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.admin_notifications (
+        id BIGSERIAL PRIMARY KEY,
+        order_id BIGINT REFERENCES public.orders(id) ON DELETE CASCADE,
+        order_number INTEGER NOT NULL,
+        type TEXT NOT NULL DEFAULT 'new_order',
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        total_pence INTEGER NOT NULL DEFAULT 0,
+        payment_method TEXT NOT NULL DEFAULT '',
+        read_by JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at
+        ON public.admin_notifications (created_at DESC);
+    `);
+
     for (const c of SEED_CATALOGS) {
       await client.query(
         `INSERT INTO public.catalogs (slug, label, short, description, color, sort_order)

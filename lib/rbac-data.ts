@@ -971,3 +971,36 @@ export async function assignUserRole(
 ): Promise<AdminUserRecord> {
   return updateAdminUser(targetUserId, { roleSlug }, actorUserId);
 }
+
+/** Returns deduplicated emails of all active (non-banned) Super Admin accounts. */
+export async function listActiveSuperAdminEmails(): Promise<string[]> {
+  const db = getPool();
+  const res = await db.query<{ email: string }>(
+    `SELECT u.email
+     FROM public.admin_user_roles aur
+     JOIN neon_auth."user" u ON u.id = aur.user_id
+     WHERE aur.role_slug = $1
+       AND COALESCE(u.banned, false) = false
+       AND u.email IS NOT NULL
+       AND trim(u.email) <> ''
+       AND EXISTS (
+         SELECT 1
+         FROM unnest(string_to_array(lower(COALESCE(u.role, '')), ',')) AS r
+         WHERE trim(r) IN ('admin', 'super_admin')
+       )
+     ORDER BY u."createdAt" ASC`,
+    [SYSTEM_ROLES.SUPER_ADMIN],
+  );
+
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const row of res.rows) {
+    const trimmed = row.email.trim();
+    const key = trimmed.toLowerCase();
+    if (trimmed && !seen.has(key)) {
+      seen.add(key);
+      emails.push(trimmed);
+    }
+  }
+  return emails;
+}

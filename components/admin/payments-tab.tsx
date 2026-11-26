@@ -7,10 +7,10 @@ import {
 } from "@/lib/payment";
 
 const inputCls =
-  "mt-1.5 block h-11 w-full rounded-xl border-2 border-ink bg-cream px-3.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-65";
+  "mt-1.5 block h-11 w-full min-w-0 rounded-xl border-2 border-ink bg-cream px-3.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-65";
 
 const textareaCls =
-  "mt-1.5 block w-full rounded-xl border-2 border-ink bg-cream px-3.5 py-2.5 text-sm leading-6 font-medium disabled:cursor-not-allowed disabled:opacity-65";
+  "mt-1.5 block w-full min-w-0 rounded-xl border-2 border-ink bg-cream px-3.5 py-2.5 text-sm leading-6 font-medium disabled:cursor-not-allowed disabled:opacity-65";
 
 function PaymentsForm({
   initial,
@@ -134,7 +134,7 @@ function PaymentsForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {/* 1. General & Support */}
-      <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+      <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
         <h3 className="text-lg font-extrabold">General &amp; Support</h3>
         <p className="mt-0.5 text-xs text-ink/70">
           Shown on the Order Received header and used as the contact email in
@@ -168,7 +168,7 @@ function PaymentsForm({
       </section>
 
       {/* 2. Pay with Gift Cards */}
-      <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+      <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
         <h3 className="text-lg font-extrabold">Pay with Gift Cards</h3>
         <p className="mt-0.5 text-xs text-ink/70">
           Controls both the checkout option hint and the full Gift Card payment
@@ -246,7 +246,7 @@ function PaymentsForm({
       </section>
 
       {/* 3. Direct Bank Transfer */}
-      <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+      <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
         <h3 className="text-lg font-extrabold">Direct Bank Transfer</h3>
         <p className="mt-0.5 text-xs text-ink/70">
           Leave UK Bank Details blank to email account details manually, or fill
@@ -325,7 +325,7 @@ function PaymentsForm({
       </section>
 
       {/* 4. Cryptocurrency */}
-      <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+      <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
         <h3 className="text-lg font-extrabold">Cryptocurrency &amp; Wallets</h3>
         <p className="mt-0.5 text-xs text-ink/70">
           Use <code className="font-mono font-bold">{"{TICKER}"}</code> in the
@@ -427,7 +427,7 @@ function PaymentsForm({
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-12 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-7 text-sm font-extrabold text-ink shadow-[4px_4px_0_var(--color-ink)] hover:bg-teal disabled:opacity-60"
+            className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-full border-2 border-ink bg-lime px-7 text-sm font-extrabold text-ink shadow-[4px_4px_0_var(--color-ink)] hover:bg-teal disabled:opacity-60 sm:w-auto"
           >
             {saving ? "Saving changes…" : "Save payment page content"}
           </button>
@@ -460,10 +460,6 @@ export default function PaymentsTab({
               content
             </em>
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Customize what customers see on the Order Received &amp; Payment
-            page for Gift Cards, Bank Transfer, and Cryptocurrency.
-          </p>
         </div>
         {!canWrite && (
           <span className="rounded-full border-2 border-ink bg-sand px-3.5 py-1 text-xs font-extrabold uppercase">

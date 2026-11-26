@@ -1,9 +1,14 @@
 import crypto from "node:crypto";
 import "server-only";
-import { FREE_SHIPPING_THRESHOLD } from "./catalog";
+import {
+  FREE_SHIPPING_THRESHOLD,
+  MIN_ORDER_AMOUNT,
+  formatPrice,
+} from "./catalog";
 import { getCryptoQuote } from "./crypto-rates";
 import { getPool } from "./db";
 import {
+  type AdminNotification,
   type AdminOrderStats,
   type CryptoCurrencyCode,
   DEFAULT_PAYMENT_SETTINGS,
@@ -18,6 +23,7 @@ import {
   type PaymentSettings,
   SHIPPING_OPTIONS,
   type ShippingMethodId,
+  getPaymentLabel,
   normalizeCryptoCode,
 } from "./payment";
 
@@ -45,7 +51,7 @@ const globalForOrders = globalThis as typeof globalThis & {
   __momoOrdersSchemaVersion?: number;
 };
 
-const ORDERS_SCHEMA_VERSION = 2;
+const ORDERS_SCHEMA_VERSION = 3;
 
 /** Idempotently creates/migrates order and payment_settings tables/sequence if missing. */
 export async function ensureOrdersSchema(): Promise<void> {
@@ -122,6 +128,24 @@ export async function ensureOrdersSchema(): Promise<void> {
           ADD COLUMN IF NOT EXISTS crypto_subtitle TEXT NOT NULL DEFAULT '',
           ADD COLUMN IF NOT EXISTS crypto_important_notice TEXT NOT NULL DEFAULT '',
           ADD COLUMN IF NOT EXISTS crypto_expiry_minutes INTEGER NOT NULL DEFAULT 120;
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS public.admin_notifications (
+          id BIGSERIAL PRIMARY KEY,
+          order_id BIGINT REFERENCES public.orders(id) ON DELETE CASCADE,
+          order_number INTEGER NOT NULL,
+          type TEXT NOT NULL DEFAULT 'new_order',
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          total_pence INTEGER NOT NULL DEFAULT 0,
+          payment_method TEXT NOT NULL DEFAULT '',
+          read_by JSONB NOT NULL DEFAULT '[]'::jsonb,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      await db.query(`
+        CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at
+          ON public.admin_notifications (created_at DESC);
       `);
     })().catch((err) => {
       globalForOrders.__momoOrdersSchemaPromise = undefined;
@@ -814,6 +838,15 @@ export async function createOrder(
     });
   }
 
+  const minOrderPence = MIN_ORDER_AMOUNT * 100;
+  if (subtotalPence < minOrderPence) {
+    const remaining = (minOrderPence - subtotalPence) / 100;
+    throw new OrderDataError(
+      400,
+      `Minimum product order is ${formatPrice(MIN_ORDER_AMOUNT)}. Add ${formatPrice(remaining)} more to place an order.`,
+    );
+  }
+
   const shippingPence =
     shippingOpt.id === "standard" &&
     subtotalPence >= FREE_SHIPPING_THRESHOLD * 100
@@ -1078,4 +1111,146 @@ export async function adminUpdateOrderStatus(
     throw new OrderDataError(404, "Order not found.");
   }
   return mapOrderRow(res.rows[0]);
+}
+
+type NotificationRow = {
+  id: string | number;
+  order_id: string | number | null;
+  order_number: number;
+  type: string;
+  title: string;
+  message: string;
+  total_pence: number;
+  payment_method: string;
+  read_by: unknown;
+  created_at: Date | string;
+};
+
+function mapNotificationRow(
+  row: NotificationRow,
+  userId: string,
+): AdminNotification {
+  const readers = Array.isArray(row.read_by)
+    ? row.read_by.filter((v): v is string => typeof v === "string")
+    : [];
+  const totalPence = Number(row.total_pence ?? 0);
+
+  return {
+    id: Number(row.id),
+    orderId:
+      row.order_id !== null && row.order_id !== undefined
+        ? Number(row.order_id)
+        : null,
+    orderNumber: Number(row.order_number),
+    type:
+      row.type === "payment_submitted" ? "payment_submitted" : "new_order",
+    title: row.title,
+    message: row.message,
+    totalPence,
+    total: Number((totalPence / 100).toFixed(2)),
+    paymentMethod: row.payment_method ?? "",
+    read: readers.includes(userId),
+    createdAt: toIso(row.created_at) ?? new Date().toISOString(),
+  };
+}
+
+/** Creates an in-dashboard Super Admin notification for a new order or crypto payment submission. */
+export async function createOrderNotification(
+  order: OrderRecord,
+  type: "new_order" | "payment_submitted" = "new_order",
+): Promise<void> {
+  await ensureOrdersSchema();
+  const db = getPool();
+  const customerName =
+    `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim() ||
+    order.email;
+  const totalLabel = `£${order.total.toFixed(2)}`;
+  const paymentLabel = getPaymentLabel(order.paymentMethod);
+  const title =
+    type === "payment_submitted"
+      ? `Crypto payment sent · #${order.orderNumber}`
+      : `New order #${order.orderNumber}`;
+  const message =
+    type === "payment_submitted"
+      ? `${customerName} marked ${order.cryptoAmount ?? ""} ${order.cryptoCurrency ?? "crypto"} (${totalLabel}) as sent.`
+      : `${customerName} · ${totalLabel} · ${paymentLabel}`;
+
+  await db.query(
+    `INSERT INTO public.admin_notifications (
+       order_id, order_number, type, title, message, total_pence, payment_method
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      order.id,
+      order.orderNumber,
+      type,
+      title,
+      message,
+      order.totalPence,
+      order.paymentMethod,
+    ],
+  );
+}
+
+/** Lists recent order notifications and unread count for a specific Super Admin user. */
+export async function listSuperAdminNotifications(
+  userId: string,
+  limit = 30,
+): Promise<{ notifications: AdminNotification[]; unreadCount: number }> {
+  await ensureOrdersSchema();
+  const db = getPool();
+  const safeLimit = Math.max(1, Math.min(100, Math.trunc(limit)));
+
+  const [rowsRes, unreadRes] = await Promise.all([
+    db.query<NotificationRow>(
+      `SELECT
+         id, order_id, order_number, type, title, message,
+         total_pence, payment_method, read_by, created_at
+       FROM public.admin_notifications
+       ORDER BY created_at DESC, id DESC
+       LIMIT $1`,
+      [safeLimit],
+    ),
+    db.query<{ unread_count: number }>(
+      `SELECT COUNT(*)::int AS unread_count
+       FROM public.admin_notifications
+       WHERE NOT (read_by ? $1)`,
+      [userId],
+    ),
+  ]);
+
+  return {
+    notifications: rowsRes.rows.map((r) => mapNotificationRow(r, userId)),
+    unreadCount: Number(unreadRes.rows[0]?.unread_count ?? 0),
+  };
+}
+
+/** Marks one or all order notifications as read for a specific Super Admin user. */
+export async function markSuperAdminNotificationsRead(
+  userId: string,
+  notificationId?: number,
+): Promise<void> {
+  await ensureOrdersSchema();
+  const db = getPool();
+  const userJson = JSON.stringify([userId]);
+
+  if (notificationId !== undefined) {
+    if (!Number.isInteger(notificationId) || notificationId <= 0) {
+      throw new OrderDataError(400, "Invalid notification ID.");
+    }
+    await db.query(
+      `UPDATE public.admin_notifications
+       SET read_by = read_by || $2::jsonb
+       WHERE id = $1 AND NOT (read_by ? $3)`,
+      [notificationId, userJson, userId],
+    );
+    return;
+  }
+
+  await db.query(
+    `UPDATE public.admin_notifications
+     SET read_by = read_by || $1::jsonb
+     WHERE NOT (read_by ? $2)`,
+    [userJson, userId],
+  );
 }

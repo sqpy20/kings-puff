@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { type Category, type Product, bgClass } from "@/lib/catalog";
+import Pagination, { paginateItems } from "./pagination";
 import ProductCard from "./product-card";
 
-const PAGE_SIZE = 24;
+const DEFAULT_PAGE_SIZE = 8;
+const PAGE_SIZE_OPTIONS = [8, 12, 24];
+const URL_CHANGE_EVENT = "momo:collection-url-change";
 
 const sorts = {
   featured: "Featured",
@@ -17,15 +20,25 @@ const sorts = {
 
 type Sort = keyof typeof sorts;
 
-function subscribePopState(listener: () => void) {
+function subscribeUrl(listener: () => void) {
   if (typeof window === "undefined") return () => {};
   window.addEventListener("popstate", listener);
-  return () => window.removeEventListener("popstate", listener);
+  window.addEventListener(URL_CHANGE_EVENT, listener);
+  return () => {
+    window.removeEventListener("popstate", listener);
+    window.removeEventListener(URL_CHANGE_EVENT, listener);
+  };
 }
 
 function readUrlSearchQuery(): string {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("q") ?? "";
+}
+
+function readUrlPage(): number {
+  if (typeof window === "undefined") return 1;
+  const raw = Number(new URLSearchParams(window.location.search).get("page"));
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
 }
 
 function Pill({
@@ -64,14 +77,16 @@ export default function CollectionBrowser({
   products: Product[];
 }) {
   const urlQuery = useSyncExternalStore(
-    subscribePopState,
+    subscribeUrl,
     readUrlSearchQuery,
     () => "",
   );
+  const urlPage = useSyncExternalStore(subscribeUrl, readUrlPage, () => 1);
   const [searchEdited, setSearchEdited] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
-  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const gridTopRef = useRef<HTMLDivElement>(null);
 
   const query = searchEdited ? searchDraft : urlQuery;
 
@@ -101,8 +116,19 @@ export default function CollectionBrowser({
     });
   }, [filtered, sort]);
 
-  const shown = sorted.slice(0, visible);
-  const hasMore = shown.length < sorted.length;
+  const { items: shown, safePage } = paginateItems(sorted, urlPage, pageSize);
+
+  function syncUrlPage(nextPage: number) {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (nextPage > 1) {
+      url.searchParams.set("page", String(nextPage));
+    } else {
+      url.searchParams.delete("page");
+    }
+    window.history.replaceState(null, "", url.pathname + url.search);
+    window.dispatchEvent(new Event(URL_CHANGE_EVENT));
+  }
 
   function handleSearchChange(nextValue: string) {
     setSearchEdited(true);
@@ -114,13 +140,33 @@ export default function CollectionBrowser({
       } else {
         url.searchParams.delete("q");
       }
+      url.searchParams.delete("page");
       window.history.replaceState(null, "", url.pathname + url.search);
+      window.dispatchEvent(new Event(URL_CHANGE_EVENT));
     }
+  }
+
+  function handleSortChange(nextSort: Sort) {
+    setSort(nextSort);
+    syncUrlPage(1);
+  }
+
+  function handlePageSizeChange(nextSize: number) {
+    setPageSize(nextSize);
+    syncUrlPage(1);
+  }
+
+  function handlePageChange(nextPage: number) {
+    syncUrlPage(nextPage);
+    gridTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-4 lg:mt-[32px] xl:flex-row xl:items-center xl:justify-between">
+      <div
+        ref={gridTopRef}
+        className="mt-6 flex scroll-mt-24 flex-col gap-4 lg:mt-[32px] xl:flex-row xl:items-center xl:justify-between"
+      >
         <nav aria-label="Categories" className="flex flex-wrap gap-2 sm:gap-2.5">
           <Pill href="/shop" active={!active} dot="bg-cream">
             All
@@ -150,7 +196,7 @@ export default function CollectionBrowser({
           <select
             aria-label="Sort products"
             value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
+            onChange={(e) => handleSortChange(e.target.value as Sort)}
             className="h-10 rounded-full border-2 border-ink bg-white px-4 text-sm font-bold sm:h-[46px]"
           >
             {Object.entries(sorts).map(([value, label]) => (
@@ -183,20 +229,17 @@ export default function CollectionBrowser({
         </ul>
       )}
 
-      <div className="mt-10 text-center lg:mt-[52px]">
-        <p aria-live="polite">
-          Showing {shown.length} of {sorted.length} products
-        </p>
-        {hasMore && (
-          <button
-            type="button"
-            onClick={() => setVisible((v) => v + PAGE_SIZE)}
-            className="mt-[13px] h-14 cursor-pointer rounded-full border-2 border-ink px-[30px] text-[17px] font-bold"
-          >
-            Load more
-          </button>
-        )}
-      </div>
+      <Pagination
+        variant="storefront"
+        page={safePage}
+        pageSize={pageSize}
+        totalItems={sorted.length}
+        itemLabel="products"
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        className="mt-10 lg:mt-[52px]"
+      />
     </>
   );
 }

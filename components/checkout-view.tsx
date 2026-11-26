@@ -7,6 +7,7 @@ import { useAttribution } from "@/lib/backlinks";
 import { clearCart, useCart, useShipState } from "@/lib/cart";
 import {
   FREE_SHIPPING_THRESHOLD,
+  MIN_ORDER_AMOUNT,
   bgClass,
   formatPrice,
 } from "@/lib/catalog";
@@ -308,9 +309,22 @@ export default function CheckoutView() {
     clearShippingErrors();
   }
 
+  const subtotal = lines.reduce(
+    (sum, l) => sum + l.product.price * l.qty,
+    0,
+  );
+  const minOrderRemaining = Math.max(0, MIN_ORDER_AMOUNT - subtotal);
+  const belowMinimum = minOrderRemaining > 0;
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
+    if (belowMinimum) {
+      setSubmitError(
+        `Minimum product order is ${formatPrice(MIN_ORDER_AMOUNT)}. Add ${formatPrice(minOrderRemaining)} more to place an order.`,
+      );
+      return;
+    }
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -432,10 +446,6 @@ export default function CheckoutView() {
     onChange: () => clearFieldError(name),
   });
 
-  const subtotal = lines.reduce(
-    (sum, l) => sum + l.product.price * l.qty,
-    0,
-  );
   const resolvedShipping = SHIPPING_OPTIONS.map((o) => {
     const amount =
       o.id === "standard" && subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : o.price;
@@ -491,6 +501,25 @@ export default function CheckoutView() {
             onSubmit={onSubmit}
             className="space-y-10 rounded-[28px] bg-white px-5 py-8 sm:px-10 sm:py-10"
           >
+            {belowMinimum && (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#c8102e] bg-[#fff5f6] px-5 py-4 text-[15px] leading-6 font-semibold text-[#c8102e]"
+              >
+                <span>
+                  Minimum product order is{" "}
+                  <strong>{formatPrice(MIN_ORDER_AMOUNT)}</strong>. Add{" "}
+                  <strong>{formatPrice(minOrderRemaining)}</strong> more to
+                  place your order.
+                </span>
+                <Link
+                  href="/shop"
+                  className="inline-flex h-9 items-center rounded-full border-2 border-ink bg-lime px-4 text-xs font-extrabold text-ink"
+                >
+                  Add more items →
+                </Link>
+              </div>
+            )}
             <input type="hidden" name="refSource" value={touch?.ref ?? ""} />
             <input
               type="hidden"
@@ -998,10 +1027,14 @@ export default function CheckoutView() {
               </p>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || belowMinimum}
                 className="mt-6 flex h-[60px] w-full cursor-pointer items-center justify-center rounded-full bg-ink px-6 text-lg font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? "Placing order…" : "Place order"}
+                {submitting
+                  ? "Placing order…"
+                  : belowMinimum
+                    ? `Add ${formatPrice(minOrderRemaining)} more to order`
+                    : "Place order"}
               </button>
               {submitError && (
                 <p

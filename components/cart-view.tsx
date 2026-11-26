@@ -11,6 +11,7 @@ import {
 } from "@/lib/cart";
 import {
   FREE_SHIPPING_THRESHOLD,
+  MIN_ORDER_AMOUNT,
   type Product,
   bgClass,
   formatPrice,
@@ -102,11 +103,15 @@ function Summary({ count, subtotal }: { count: number; subtotal: number }) {
   const [state, setState] = useShipState();
   const [confirmed, setConfirmed] = useState(false);
   const [promoTried, setPromoTried] = useState(false);
-  const blocked = !state
-    ? "Choose a delivery county to continue"
-    : !confirmed
-      ? "Confirm your age to continue"
-      : null;
+  const minRemaining = Math.max(0, MIN_ORDER_AMOUNT - subtotal);
+  const blocked =
+    minRemaining > 0
+      ? `Add ${formatPrice(minRemaining)} more (min ${formatPrice(MIN_ORDER_AMOUNT)})`
+      : !state
+        ? "Choose a delivery county to continue"
+        : !confirmed
+          ? "Confirm your age to continue"
+          : null;
   const cta =
     "flex min-h-[60px] w-full items-center justify-center gap-1.5 rounded-full px-6 py-2 text-center text-lg leading-[1.4] font-bold";
 
@@ -302,6 +307,7 @@ export default function CartView() {
     0,
   );
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+  const minRemaining = Math.max(0, MIN_ORDER_AMOUNT - subtotal);
 
   return (
     <main className="shell pt-8 pb-16 lg:pt-[30px] lg:pb-24">
@@ -339,11 +345,17 @@ export default function CartView() {
                 <Line key={l.product.id} {...l} />
               ))}
             </ul>
-            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-[22px] bg-lime px-[26px] py-[19px] leading-6">
+            <div
+              className={`mt-[18px] flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-[22px] px-[26px] py-[19px] leading-6 ${
+                minRemaining > 0 ? "border-2 border-ink bg-pink" : "bg-lime"
+              }`}
+            >
               <p className="font-semibold">
-                {remaining > 0
-                  ? `Add ${formatPrice(remaining)} more for free standard shipping.`
-                  : "You've unlocked free standard shipping!"}
+                {minRemaining > 0
+                  ? `Minimum order is ${formatPrice(MIN_ORDER_AMOUNT)} — add ${formatPrice(minRemaining)} more to check out.`
+                  : remaining > 0
+                    ? `Add ${formatPrice(remaining)} more for free standard shipping.`
+                    : "Minimum order met · You've unlocked free standard shipping!"}
               </p>
               <Link
                 href="/shop"
