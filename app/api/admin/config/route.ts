@@ -56,6 +56,7 @@ export async function GET() {
           ],
           admin: [
             "/api/admin/session",
+            "/api/admin/notifications",
             "/api/admin/orders",
             "/api/admin/orders/[id]",
             "/api/admin/catalogs",

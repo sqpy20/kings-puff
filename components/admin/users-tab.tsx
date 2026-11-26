@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useMemo, useState } from "react";
+import Pagination, { paginateItems } from "@/components/pagination";
 import type { AdminUser } from "@/lib/auth/admin";
 import {
   ALL_PERMISSION_KEYS,
@@ -55,6 +56,8 @@ export default function UsersTab({
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "banned">(
     "all",
   );
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -100,6 +103,12 @@ export default function UsersTab({
       return true;
     });
   }, [users, search, roleFilter, statusFilter]);
+
+  const { items: paginatedUsers, safePage } = paginateItems(
+    filteredUsers,
+    page,
+    pageSize,
+  );
 
   function openCreateForm() {
     setCreateError(null);
@@ -309,37 +318,37 @@ export default function UsersTab({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)]">
           <p className="text-[11px] font-extrabold tracking-[0.08em] uppercase text-ink/60">
             Total accounts
           </p>
-          <p className="mt-1.5 text-3xl font-extrabold">{stats.total}</p>
+          <p className="mt-1.5 text-2xl font-extrabold sm:text-3xl">{stats.total}</p>
         </div>
         <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)]">
           <p className="text-[11px] font-extrabold tracking-[0.08em] uppercase text-ink/60">
             Active
           </p>
-          <p className="mt-1.5 text-3xl font-extrabold">{stats.active}</p>
+          <p className="mt-1.5 text-2xl font-extrabold sm:text-3xl">{stats.active}</p>
         </div>
         <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)]">
           <p className="text-[11px] font-extrabold tracking-[0.08em] uppercase text-ink/60">
             Suspended
           </p>
-          <p className="mt-1.5 text-3xl font-extrabold">{stats.suspended}</p>
+          <p className="mt-1.5 text-2xl font-extrabold sm:text-3xl">{stats.suspended}</p>
         </div>
         <div className="rounded-[20px] border-2 border-ink bg-lime p-4 shadow-[4px_4px_0_var(--color-ink)]">
           <p className="text-[11px] font-extrabold tracking-[0.08em] uppercase text-ink/75">
             Super Admins
           </p>
-          <p className="mt-1.5 text-3xl font-extrabold">{stats.superAdmins}</p>
+          <p className="mt-1.5 text-2xl font-extrabold sm:text-3xl">{stats.superAdmins}</p>
         </div>
       </div>
 
       {canWrite && createOpen && (
         <form
           onSubmit={handleCreateUser}
-          className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
+          className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6"
         >
           <h3 className="border-b border-ink/15 pb-3 text-lg font-extrabold">
             Create admin team account
@@ -453,7 +462,7 @@ export default function UsersTab({
       {canWrite && editingUser && (
         <form
           onSubmit={handleSaveEdit}
-          className="rounded-[24px] border-2 border-ink bg-sand/70 p-6 shadow-[5px_5px_0_var(--color-ink)]"
+          className="rounded-[24px] border-2 border-ink bg-sand/70 p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/15 pb-3">
             <div>
@@ -561,43 +570,182 @@ export default function UsersTab({
         </form>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-[20px] border-2 border-ink bg-sand p-4">
+      <div className="grid gap-2.5 rounded-[20px] border-2 border-ink bg-sand p-3.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:p-4">
         <input
           type="search"
           aria-label="Search users"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           placeholder="Search name, email, or role…"
-          className="h-10 min-w-[220px] flex-1 rounded-xl border-2 border-ink bg-white px-3.5 text-sm placeholder:text-ink/45"
+          className="h-10 w-full rounded-xl border-2 border-ink bg-white px-3.5 text-sm placeholder:text-ink/45 sm:min-w-[220px] sm:flex-1"
         />
-        <select
-          aria-label="Filter by role"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="h-10 rounded-xl border-2 border-ink bg-white px-3.5 text-sm font-bold"
-        >
-          <option value="all">All roles</option>
-          {roles.map((r) => (
-            <option key={r.slug} value={r.slug}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filter by status"
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as "all" | "active" | "banned")
-          }
-          className="h-10 rounded-xl border-2 border-ink bg-white px-3.5 text-sm font-bold"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active only</option>
-          <option value="banned">Suspended only</option>
-        </select>
+        <div className="grid grid-cols-2 gap-2.5 sm:contents">
+          <select
+            aria-label="Filter by role"
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 min-w-0 rounded-xl border-2 border-ink bg-white px-3 text-sm font-bold"
+          >
+            <option value="all">All roles</option>
+            {roles.map((r) => (
+              <option key={r.slug} value={r.slug}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter by status"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as "all" | "active" | "banned");
+              setPage(1);
+            }}
+            className="h-10 min-w-0 rounded-xl border-2 border-ink bg-white px-3 text-sm font-bold"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active only</option>
+            <option value="banned">Suspended only</option>
+          </select>
+        </div>
       </div>
 
-      <section className="rounded-[24px] border-2 border-ink bg-white p-5 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
+      {/* Mobile user cards */}
+      <div className="space-y-3 md:hidden">
+        {paginatedUsers.map((u) => {
+          const isSelf = u.id === currentUser.id;
+          const isBusy = busyUserId === u.id;
+
+          return (
+            <article
+              key={u.id}
+              className="rounded-[22px] border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-extrabold text-ink">
+                      {u.name || u.email}
+                    </span>
+                    {isSelf && (
+                      <span className="rounded-full border border-ink bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  <p className="break-all text-xs text-ink/65">{u.email}</p>
+                </div>
+
+                {u.banned ? (
+                  <span className="inline-flex shrink-0 rounded-full border border-[#c8102e] bg-[#fff5f6] px-2.5 py-0.5 text-[11px] font-extrabold text-[#c8102e]">
+                    Suspended
+                  </span>
+                ) : (
+                  <span className="inline-flex shrink-0 rounded-full border border-ink bg-teal px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                    Active
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 text-xs">
+                <span
+                  className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 font-extrabold ${
+                    u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
+                      ? "bg-lime text-ink"
+                      : u.permissions.length > 0
+                        ? "bg-teal text-ink"
+                        : "bg-sand text-ink"
+                  }`}
+                >
+                  {u.rbacRoleName}
+                </span>
+                <span className="font-semibold text-ink/75">
+                  {u.permissions.length}/{ALL_PERMISSION_KEYS.length} perms ·{" "}
+                  {u.activeSessions} session{u.activeSessions === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              {u.banned && u.banReason && (
+                <p className="mt-2 text-xs text-[#c8102e]">
+                  Reason: {u.banReason}
+                </p>
+              )}
+
+              {canWrite && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => openEditUser(u)}
+                    className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3.5 text-xs font-bold hover:bg-lime disabled:opacity-50"
+                  >
+                    Edit
+                  </button>
+                  {!isSelf && (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleToggleBan(u)}
+                      className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-3.5 text-xs font-bold hover:bg-sand disabled:opacity-50"
+                    >
+                      {u.banned ? "Activate" : "Suspend"}
+                    </button>
+                  )}
+                  {!isSelf &&
+                    (confirmDeleteId === u.id ? (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => handleDeleteUser(u)}
+                        className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3.5 text-xs font-bold text-white disabled:opacity-60"
+                      >
+                        {isBusy ? "Deleting…" : "Confirm"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => setConfirmDeleteId(u.id)}
+                        className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3.5 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                      >
+                        Delete
+                      </button>
+                    ))}
+                </div>
+              )}
+            </article>
+          );
+        })}
+        {filteredUsers.length === 0 ? (
+          <div className="rounded-[22px] border-2 border-ink bg-white p-8 text-center text-sm text-ink/60">
+            No user accounts match the active filters.
+          </div>
+        ) : (
+          <div className="rounded-[20px] border-2 border-ink bg-white p-3.5 shadow-[4px_4px_0_var(--color-ink)]">
+            <Pagination
+              variant="admin"
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={filteredUsers.length}
+              itemLabel="users"
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop user table */}
+      <section className="hidden rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)] md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] border-collapse text-left text-sm">
             <thead>
@@ -611,7 +759,7 @@ export default function UsersTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/15">
-              {filteredUsers.map((u) => {
+              {paginatedUsers.map((u) => {
                 const isSelf = u.id === currentUser.id;
                 const isBusy = busyUserId === u.id;
 
@@ -727,6 +875,23 @@ export default function UsersTab({
             </tbody>
           </table>
         </div>
+        {filteredUsers.length > 0 && (
+          <div className="mt-4 border-t border-ink/15 pt-4">
+            <Pagination
+              variant="admin"
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={filteredUsers.length}
+              itemLabel="users"
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

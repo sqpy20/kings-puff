@@ -1,9 +1,11 @@
 import { isMailConfigured, sendOrderPaymentSubmittedEmail } from "@/lib/mail";
 import {
   OrderDataError,
+  createOrderNotification,
   getOrderByToken,
   updateOrderStatusByToken,
 } from "@/lib/orders";
+import { listActiveSuperAdminEmails } from "@/lib/rbac-data";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -46,11 +48,31 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const order = await updateOrderStatusByToken(token, action);
 
-    if (action === "confirm_sent" && isMailConfigured()) {
+    if (action === "confirm_sent") {
       try {
-        await sendOrderPaymentSubmittedEmail(order);
-      } catch (mailErr) {
-        console.error("Failed to notify handler of submitted payment:", mailErr);
+        await createOrderNotification(order, "payment_submitted");
+      } catch (notifyErr) {
+        console.error(
+          "Failed to create payment-submitted notification:",
+          notifyErr,
+        );
+      }
+
+      if (isMailConfigured()) {
+        try {
+          const superAdminEmails = await listActiveSuperAdminEmails().catch(
+            (err) => {
+              console.error("Failed to load Super Admin emails:", err);
+              return [] as string[];
+            },
+          );
+          await sendOrderPaymentSubmittedEmail(order, superAdminEmails);
+        } catch (mailErr) {
+          console.error(
+            "Failed to notify handler and Super Admins of submitted payment:",
+            mailErr,
+          );
+        }
       }
     }
 

@@ -90,8 +90,8 @@ export default function ConfigTab({
       ) : (
         <>
           <div className="grid gap-5 lg:grid-cols-2">
-            <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-              <div className="flex items-center justify-between gap-3">
+            <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-extrabold">Neon Lakebase Postgres</h3>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border-2 border-ink px-3 py-0.5 text-xs font-extrabold uppercase ${
@@ -103,34 +103,38 @@ export default function ConfigTab({
                 </span>
               </div>
 
-              <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-cream p-3.5">
+              <dl className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Neon Branch
                   </dt>
-                  <dd className="mt-1 font-mono font-bold">{db?.branch}</dd>
+                  <dd className="mt-1 truncate font-mono font-bold">
+                    {db?.branch}
+                  </dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Database
                   </dt>
-                  <dd className="mt-1 font-mono font-bold">{db?.databaseName}</dd>
+                  <dd className="mt-1 truncate font-mono font-bold">
+                    {db?.databaseName}
+                  </dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Runtime Driver
                   </dt>
-                  <dd className="mt-1 font-semibold">
+                  <dd className="mt-1 font-semibold break-words">
                     {config.infrastructure.databaseDriver}
                   </dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     DB Clock (UTC)
                   </dt>
                   <dd className="mt-1 font-semibold">{formattedServerTime}</dd>
                 </div>
-                <div className="rounded-xl bg-sand p-3.5">
+                <div className="min-w-0 rounded-xl bg-sand p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Catalog Tables
                   </dt>
@@ -139,7 +143,7 @@ export default function ConfigTab({
                     products ({db?.activeProductCount ?? 0} live)
                   </dd>
                 </div>
-                <div className="rounded-xl bg-sand p-3.5">
+                <div className="min-w-0 rounded-xl bg-sand p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Low Stock Flagged
                   </dt>
@@ -150,8 +154,8 @@ export default function ConfigTab({
               </dl>
             </section>
 
-            <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-              <div className="flex items-center justify-between gap-3">
+            <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-extrabold">
                   Neon Auth &amp; Security Boundary
                 </h3>
@@ -160,22 +164,22 @@ export default function ConfigTab({
                 </span>
               </div>
 
-              <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-cream p-3.5">
+              <dl className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Identity Provider
                   </dt>
-                  <dd className="mt-1 font-semibold">
+                  <dd className="mt-1 font-semibold break-words">
                     {config.infrastructure.authProvider}
                   </dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Signed-in Admin
                   </dt>
                   <dd className="mt-1 truncate font-bold">{config.user.email}</dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Registered Users
                   </dt>
@@ -183,17 +187,17 @@ export default function ConfigTab({
                     {db?.adminUsers ?? 0} admin · {db?.totalUsers ?? 0} total
                   </dd>
                 </div>
-                <div className="rounded-xl bg-cream p-3.5">
+                <div className="min-w-0 rounded-xl bg-cream p-3.5">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Active Sessions
                   </dt>
                   <dd className="mt-1 font-bold">{db?.activeSessions ?? 0}</dd>
                 </div>
-                <div className="col-span-2 rounded-xl bg-sand p-3.5">
+                <div className="min-w-0 rounded-xl bg-sand p-3.5 sm:col-span-2">
                   <dt className="text-[11px] font-bold tracking-[0.08em] uppercase text-ink/60">
                     Next.js 16 Proxy Matcher (proxy.ts)
                   </dt>
-                  <dd className="mt-1 font-mono text-xs font-bold">
+                  <dd className="mt-1 font-mono text-xs font-bold break-all">
                     {config.infrastructure.proxyMatcher.join(", ")}
                   </dd>
                 </div>
@@ -202,14 +206,14 @@ export default function ConfigTab({
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
               <h3 className="text-lg font-extrabold">
                 Storefront &amp; SEO Runtime
               </h3>
               <dl className="mt-4 space-y-2.5 text-sm">
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Media CDN</dt>
-                  <dd className="flex items-center gap-2 font-bold">
+                  <dd className="flex flex-wrap items-center gap-2 font-bold">
                     <span
                       className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-extrabold uppercase ${
                         config.media.configured ? "bg-teal" : "bg-pink"
@@ -223,9 +227,9 @@ export default function ConfigTab({
                       : ""}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Mail (SMTP)</dt>
-                  <dd className="flex flex-wrap items-center justify-end gap-2 text-right font-bold">
+                  <dd className="flex flex-wrap items-center gap-2 font-bold sm:justify-end sm:text-right">
                     <span
                       className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-extrabold uppercase ${
                         config.mail.configured ? "bg-teal" : "bg-pink"
@@ -233,52 +237,52 @@ export default function ConfigTab({
                     >
                       {config.mail.configured ? "Connected" : "Missing"}
                     </span>
-                    <span className="font-mono text-xs">
+                    <span className="font-mono text-xs break-all">
                       {config.mail.host
                         ? `${config.mail.host}${config.mail.port ? `:${config.mail.port}` : ""}`
                         : config.mail.provider}
                     </span>
-                    <span className="text-xs font-semibold text-ink/70">
+                    <span className="text-xs font-semibold break-all text-ink/70">
                       → {config.mail.contactTo}
                     </span>
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Storefront Name</dt>
                   <dd className="font-bold">{config.storefront.siteName}</dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Canonical Origin</dt>
-                  <dd className="font-mono text-xs font-bold">
+                  <dd className="font-mono text-xs font-bold break-all">
                     {config.storefront.siteUrl}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Locale</dt>
                   <dd className="font-mono font-bold">
                     {config.storefront.locale}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Free UK Shipping</dt>
                   <dd className="font-bold">
                     {formatPrice(config.storefront.freeShippingThreshold)}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-ink/10 pb-2">
+                <div className="flex flex-col gap-1 border-b border-ink/10 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <dt className="text-ink/70">Same-day Dispatch</dt>
                   <dd className="font-bold">{config.storefront.dispatchCutoff}</dd>
                 </div>
-                <div className="flex flex-wrap justify-between gap-2 pt-1">
+                <div className="flex flex-col gap-1 pt-1 sm:flex-row sm:flex-wrap sm:justify-between sm:gap-2">
                   <dt className="text-ink/70">robots.txt Disallow</dt>
-                  <dd className="font-mono text-xs font-bold">
+                  <dd className="font-mono text-xs font-bold break-all">
                     {config.infrastructure.robotsDisallow.join(", ")}
                   </dd>
                 </div>
               </dl>
             </section>
 
-            <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
               <h3 className="text-lg font-extrabold">Backend API Surface</h3>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-cream p-4">
@@ -309,7 +313,7 @@ export default function ConfigTab({
             </section>
           </div>
 
-          <section className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+          <section className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-extrabold">
@@ -374,7 +378,7 @@ export default function ConfigTab({
             </dl>
           </section>
 
-          <section className="rounded-[24px] border-2 border-ink bg-sand p-6">
+          <section className="rounded-[24px] border-2 border-ink bg-sand p-4 sm:p-6">
             <h3 className="text-lg font-extrabold">Infrastructure CLI Commands</h3>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-ink/20 bg-white p-4">

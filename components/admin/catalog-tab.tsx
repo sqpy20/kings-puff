@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Pagination, { paginateItems } from "@/components/pagination";
 import {
   type Category,
   VALID_COLORS,
@@ -52,6 +53,14 @@ export default function CatalogTab({
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { items: paginatedCatalogs, safePage } = paginateItems(
+    catalogs,
+    page,
+    pageSize,
+  );
 
   function openCreate() {
     setEditingSlug(null);
@@ -190,7 +199,7 @@ export default function CatalogTab({
       {canWrite && formOpen && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
+          className="rounded-[24px] border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6"
         >
           <div className="flex items-center justify-between gap-3 border-b border-ink/15 pb-4">
             <h3 className="text-lg font-extrabold">
@@ -348,7 +357,107 @@ export default function CatalogTab({
         </form>
       )}
 
-      <div className="rounded-[24px] border-2 border-ink bg-white p-5 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
+      {/* Mobile catalog cards */}
+      <div className="space-y-3 md:hidden">
+        {paginatedCatalogs.map((c) => {
+          const isDeleting = deletingSlug === c.slug;
+          return (
+            <article
+              key={c.slug}
+              className="rounded-[22px] border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)]"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-bold ${bgClass[c.color]} ${
+                      c.color === "purple" || c.color === "ink"
+                        ? "text-white"
+                        : "text-ink"
+                    }`}
+                  >
+                    {c.label}
+                  </span>
+                  <code className="text-xs text-ink/65">/{c.slug}</code>
+                </div>
+                <span className="rounded-full border border-ink/20 bg-cream px-2.5 py-0.5 text-xs font-bold">
+                  {c.productCount ?? 0} SKUs
+                </span>
+              </div>
+
+              <p className="mt-2.5 text-sm leading-5 text-ink/80">
+                {c.description}
+              </p>
+
+              <p className="mt-2 text-xs text-ink/60">
+                Filter pill: <strong>{c.short}</strong> · Sort #{c.sortOrder}
+              </p>
+
+              <div className="mt-3.5 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={() => openEdit(c)}
+                    className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-cream px-3.5 text-xs font-bold hover:bg-lime"
+                  >
+                    Edit
+                  </button>
+                )}
+                <a
+                  href={`/shop/${c.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center rounded-full border-2 border-ink bg-white px-3.5 text-xs font-bold hover:bg-sand"
+                >
+                  Store ↗
+                </a>
+                {canWrite &&
+                  (confirmDelete === c.slug ? (
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={() => handleDelete(c.slug)}
+                      className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-[#c8102e] bg-[#c8102e] px-3.5 text-xs font-bold text-white disabled:opacity-60"
+                    >
+                      {isDeleting ? "Deleting…" : "Confirm delete"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(c.slug)}
+                      className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink/40 bg-white px-3.5 text-xs font-bold text-[#c8102e] hover:border-[#c8102e]"
+                    >
+                      Delete
+                    </button>
+                  ))}
+              </div>
+            </article>
+          );
+        })}
+        {catalogs.length === 0 ? (
+          <div className="rounded-[22px] border-2 border-ink bg-white p-8 text-center text-sm text-ink/60">
+            No catalogs found in Lakebase Postgres.
+          </div>
+        ) : (
+          <div className="rounded-[20px] border-2 border-ink bg-white p-3.5 shadow-[4px_4px_0_var(--color-ink)]">
+            <Pagination
+              variant="admin"
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={catalogs.length}
+              itemLabel="catalogs"
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop catalog table */}
+      <div className="hidden rounded-[24px] border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)] md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] border-collapse text-left text-sm">
             <thead>
@@ -361,7 +470,7 @@ export default function CatalogTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/15">
-              {catalogs.map((c) => {
+              {paginatedCatalogs.map((c) => {
                 const isDeleting = deletingSlug === c.slug;
                 return (
                   <tr key={c.slug} className="align-top hover:bg-cream/50">
@@ -445,6 +554,23 @@ export default function CatalogTab({
             </tbody>
           </table>
         </div>
+        {catalogs.length > 0 && (
+          <div className="mt-4 border-t border-ink/15 pt-4">
+            <Pagination
+              variant="admin"
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={catalogs.length}
+              itemLabel="catalogs"
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

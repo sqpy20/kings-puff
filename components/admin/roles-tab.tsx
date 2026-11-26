@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useMemo, useState } from "react";
+import Pagination, { paginateItems } from "@/components/pagination";
 import {
   ALL_PERMISSION_KEYS,
   type AdminRole,
@@ -228,10 +229,15 @@ export default function RolesTab({
   onMutated: () => Promise<void>;
   onFlash: (kind: "success" | "error", text: string) => void;
 }) {
+  const ROLES_PAGE_SIZE = 6;
+  const MEMBERS_PAGE_SIZE = 12;
+
   const [selectedSlug, setSelectedSlug] = useState<string>(
     roles[0]?.slug ?? SYSTEM_ROLES.SUPER_ADMIN,
   );
   const [creatingMode, setCreatingMode] = useState(false);
+  const [rolePage, setRolePage] = useState(1);
+  const [memberPage, setMemberPage] = useState(1);
 
   const [drafts, setDrafts] = useState<Record<string, RoleDraft>>({});
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -319,6 +325,7 @@ export default function RolesTab({
     setCreatingMode(false);
     setConfirmDeleteSlug(null);
     setDetailsExpanded(false);
+    setMemberPage(1);
     setSelectedSlug(slug);
   }
 
@@ -440,6 +447,16 @@ export default function RolesTab({
   const activeMembers = activeRole
     ? (usersByRole.get(activeRole.slug) ?? [])
     : [];
+  const { items: paginatedRoles, safePage: safeRolePage } = paginateItems(
+    roles,
+    rolePage,
+    ROLES_PAGE_SIZE,
+  );
+  const { items: paginatedMembers, safePage: safeMemberPage } = paginateItems(
+    activeMembers,
+    memberPage,
+    MEMBERS_PAGE_SIZE,
+  );
 
   return (
     <div className="space-y-6">
@@ -482,8 +499,8 @@ export default function RolesTab({
             </span>
           </div>
 
-          <ul className="mt-3 space-y-2.5">
-            {roles.map((role) => {
+          <ul className="mt-3 flex gap-2.5 overflow-x-auto pb-1 lg:block lg:space-y-2.5 lg:overflow-visible lg:pb-0">
+            {paginatedRoles.map((role) => {
               const draft = getDraft(role);
               const isSelected = !creatingMode && activeRole?.slug === role.slug;
               const isDirty = hasRoleUnsavedChanges(role);
@@ -492,7 +509,10 @@ export default function RolesTab({
               );
 
               return (
-                <li key={role.slug}>
+                <li
+                  key={role.slug}
+                  className="min-w-[205px] shrink-0 lg:w-full lg:min-w-0"
+                >
                   <button
                     type="button"
                     onClick={() => selectRole(role.slug)}
@@ -574,12 +594,25 @@ export default function RolesTab({
               );
             })}
           </ul>
+          {roles.length > ROLES_PAGE_SIZE && (
+            <div className="mt-3 border-t border-ink/15 pt-3">
+              <Pagination
+                compact
+                variant="admin"
+                page={safeRolePage}
+                pageSize={ROLES_PAGE_SIZE}
+                totalItems={roles.length}
+                itemLabel="roles"
+                onPageChange={setRolePage}
+              />
+            </div>
+          )}
         </aside>
 
         {canWrite && creatingMode ? (
           <form
             onSubmit={handleCreateRole}
-            className="space-y-6 rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]"
+            className="space-y-6 rounded-3xl border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6"
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 pb-4">
               <div>
@@ -701,9 +734,9 @@ export default function RolesTab({
                   return (
                     <div
                       key={mod.id}
-                      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5"
+                      className="flex flex-col items-start gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="min-w-50 flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span
                             className={`size-2.5 rounded-full border border-ink ${mod.badgeColor}`}
@@ -765,7 +798,7 @@ export default function RolesTab({
           </form>
         ) : activeRole && activeDraft ? (
           <div className="space-y-5">
-            <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <section className="rounded-3xl border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -881,7 +914,7 @@ export default function RolesTab({
                   </p>
                 ) : (
                   <div className="mt-2.5 flex flex-wrap gap-2">
-                    {activeMembers.map((member) => (
+                    {paginatedMembers.map((member) => (
                       <div
                         key={member.id}
                         className="inline-flex items-center gap-2 rounded-full border border-ink bg-cream py-1 pr-3 pl-1.5 text-xs"
@@ -901,10 +934,23 @@ export default function RolesTab({
                     ))}
                   </div>
                 )}
+                {activeMembers.length > MEMBERS_PAGE_SIZE && (
+                  <div className="mt-3 border-t border-ink/10 pt-3">
+                    <Pagination
+                      compact
+                      variant="admin"
+                      page={safeMemberPage}
+                      pageSize={MEMBERS_PAGE_SIZE}
+                      totalItems={activeMembers.length}
+                      itemLabel="members"
+                      onPageChange={setMemberPage}
+                    />
+                  </div>
+                )}
               </div>
             </section>
 
-            <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
+            <section className="rounded-3xl border-2 border-ink bg-white p-4 shadow-[5px_5px_0_var(--color-ink)] sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 pb-4">
                 <div>
                   <h4 className="text-base font-extrabold">
@@ -981,9 +1027,9 @@ export default function RolesTab({
                   return (
                     <div
                       key={mod.id}
-                      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-white/75"
+                      className="flex flex-col items-start gap-2.5 px-4 py-3.5 transition-colors hover:bg-white/75 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="min-w-50 flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span
                             className={`size-2.5 rounded-full border border-ink ${mod.badgeColor}`}

@@ -154,6 +154,20 @@ export type AdminOrderStats = {
   byMethod: Record<PaymentMethod, number>;
 };
 
+export type AdminNotification = {
+  id: number;
+  orderId: number | null;
+  orderNumber: number;
+  type: "new_order" | "payment_submitted";
+  title: string;
+  message: string;
+  totalPence: number;
+  total: number;
+  paymentMethod: string;
+  read: boolean;
+  createdAt: string;
+};
+
 export type PaymentSettings = {
   supportEmail: string;
   orderReceivedSubtitle: string;

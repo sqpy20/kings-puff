@@ -419,11 +419,35 @@ function buildCustomerInstructions(
   return { text, html };
 }
 
-/** Sends handler notification and customer confirmation/payment instructions for a new order. */
+/** Deduplicates internal notification email recipients (handler + active Super Admins). */
+function buildAdminRecipients(
+  primary: string,
+  extra: readonly string[],
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [primary, ...extra]) {
+    const clean = stripHeaderBreaks(raw);
+    if (!clean) continue;
+    const key = clean.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(clean);
+    }
+  }
+  return out;
+}
+
+/** Sends handler + Super Admin alerts and customer confirmation for a new order. */
 export async function sendOrderEmails(
   order: OrderRecord,
   settings: PaymentSettings,
-): Promise<{ handlerSent: boolean; customerSent: boolean }> {
+  extraAdminEmails: string[] = [],
+): Promise<{
+  handlerSent: boolean;
+  superAdminsNotified: number;
+  customerSent: boolean;
+}> {
   const { config } = getTransporter();
   const supportEmail = settings.supportEmail;
   const orderDate = formatOrderDate(order.createdAt);
@@ -431,6 +455,7 @@ export async function sendOrderEmails(
   const customerName =
     `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim();
   const orderUrl = `${SITE_URL}/checkout/order-received/${order.accessToken}`;
+  const adminOrdersUrl = `${SITE_URL}/admin?tab=orders`;
   const shippingText =
     order.shipping === 0
       ? `Free via ${order.shippingLabel}`
@@ -463,7 +488,8 @@ export async function sendOrderEmails(
     "Billing address:",
     ...formatAddressLines(order.billingAddress),
     "",
-    `Payment page: ${orderUrl}`,
+    `Open in Admin Orders: ${adminOrdersUrl}`,
+    `Customer payment page: ${orderUrl}`,
   ].join("\n");
 
   const handlerHtml = `<!doctype html>
@@ -518,6 +544,9 @@ export async function sendOrderEmails(
               </td>
             </tr>
           </table>
+          <p style="margin:20px 0 0;">
+            <a href="${escapeHtml(adminOrdersUrl)}" style="display:inline-block;padding:10px 18px;background-color:#212121;color:#ffffff;text-decoration:none;border-radius:999px;font-size:13px;font-weight:700;">Open in Admin Orders</a>
+          </p>
         </td>
       </tr>
     </table>
@@ -579,42 +608,81 @@ export async function sendOrderEmails(
   </body>
 </html>`;
 
-  const [handlerResult, customerResult] = await Promise.allSettled([
-    sendMail({
-      to: config.contactTo,
-      replyTo: { name: stripHeaderBreaks(customerName), address: stripHeaderBreaks(order.email) },
-      subject: `[Momo Eliquid Order #${order.orderNumber}] ${paymentLabel} · ${formatPrice(order.total)}`,
-      text: handlerText,
-      html: handlerHtml,
-    }),
+  const adminRecipients = buildAdminRecipients(
+    config.contactTo,
+    extraAdminEmails,
+  );
+  const replyToCustomer = {
+    name: stripHeaderBreaks(customerName),
+    address: stripHeaderBreaks(order.email),
+  };
+  const adminSubject = `[Momo Eliquid Order #${order.orderNumber}] ${paymentLabel} · ${formatPrice(order.total)}`;
+
+  const [adminResults, customerResult] = await Promise.all([
+    Promise.allSettled(
+      adminRecipients.map((recipient) =>
+        sendMail({
+          to: recipient,
+          replyTo: replyToCustomer,
+          subject: adminSubject,
+          text: handlerText,
+          html: handlerHtml,
+        }),
+      ),
+    ),
     sendMail({
       to: order.email,
       replyTo: supportEmail,
       subject: `Momo Eliquid — Order #${order.orderNumber} received (${paymentLabel})`,
       text: customerText,
       html: customerHtml,
-    }),
+    })
+      .then(() => ({ ok: true as const }))
+      .catch((err) => {
+        console.error("Failed to send customer order email:", err);
+        return { ok: false as const };
+      }),
   ]);
 
-  if (handlerResult.status === "rejected") {
-    console.error("Failed to send handler order email:", handlerResult.reason);
-  }
-  if (customerResult.status === "rejected") {
-    console.error("Failed to send customer order email:", customerResult.reason);
-  }
+  let handlerSent = false;
+  let superAdminsNotified = 0;
+
+  adminResults.forEach((result, index) => {
+    const recipient = adminRecipients[index];
+    if (result.status === "rejected") {
+      console.error(
+        `Failed to send admin order email to ${recipient}:`,
+        result.reason,
+      );
+      return;
+    }
+    if (recipient.toLowerCase() === config.contactTo.toLowerCase()) {
+      handlerSent = true;
+    }
+    if (
+      extraAdminEmails.some(
+        (email) => email.trim().toLowerCase() === recipient.toLowerCase(),
+      )
+    ) {
+      superAdminsNotified += 1;
+    }
+  });
 
   return {
-    handlerSent: handlerResult.status === "fulfilled",
-    customerSent: customerResult.status === "fulfilled",
+    handlerSent,
+    superAdminsNotified,
+    customerSent: customerResult.ok,
   };
 }
 
-/** Notifies the order handler when a customer clicks to confirm a crypto payment was sent. */
+/** Notifies the order handler and active Super Admins when a customer marks crypto payment sent. */
 export async function sendOrderPaymentSubmittedEmail(
   order: OrderRecord,
+  extraAdminEmails: string[] = [],
 ): Promise<void> {
   const { config } = getTransporter();
   const orderUrl = `${SITE_URL}/checkout/order-received/${order.accessToken}`;
+  const adminOrdersUrl = `${SITE_URL}/admin?tab=orders`;
   const text = [
     `Customer confirmed payment sent for Order #${order.orderNumber}.`,
     "",
@@ -626,13 +694,28 @@ export async function sendOrderPaymentSubmittedEmail(
           `Wallet: ${order.cryptoAddress}`,
         ]
       : []),
+    `Admin orders: ${adminOrdersUrl}`,
     `Order page: ${orderUrl}`,
   ].join("\n");
 
-  await sendMail({
-    to: config.contactTo,
-    replyTo: stripHeaderBreaks(order.email),
-    subject: `[Momo Eliquid Order #${order.orderNumber}] Customer marked crypto payment sent`,
-    text,
+  const recipients = buildAdminRecipients(config.contactTo, extraAdminEmails);
+  const results = await Promise.allSettled(
+    recipients.map((recipient) =>
+      sendMail({
+        to: recipient,
+        replyTo: stripHeaderBreaks(order.email),
+        subject: `[Momo Eliquid Order #${order.orderNumber}] Customer marked crypto payment sent`,
+        text,
+      }),
+    ),
+  );
+
+  results.forEach((res, idx) => {
+    if (res.status === "rejected") {
+      console.error(
+        `Failed to send payment-submitted alert to ${recipients[idx]}:`,
+        res.reason,
+      );
+    }
   });
 }

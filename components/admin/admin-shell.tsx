@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminSignOutButton from "@/components/admin-sign-out-button";
 import { ArrowIcon } from "@/components/illustrations";
+import Pagination, { paginateItems } from "@/components/pagination";
 import type { AdminUser } from "@/lib/auth/admin";
 import {
   type Category,
@@ -13,6 +14,7 @@ import {
   formatPrice,
 } from "@/lib/catalog";
 import {
+  type AdminNotification,
   type AdminOrderStats,
   type OrderRecord,
   type PaymentSettings,
@@ -196,6 +198,17 @@ export default function AdminShell({
   );
 
   const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifPage, setNotifPage] = useState(1);
+  const [overviewCatalogPage, setOverviewCatalogPage] = useState(1);
+  const [overviewLowStockPage, setOverviewLowStockPage] = useState(1);
+  const [overviewOrdersPage, setOverviewOrdersPage] = useState(1);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [focusedOrderId, setFocusedOrderId] = useState<number | null>(null);
+  const notifContainerRef = useRef<HTMLDivElement>(null);
+  const latestNotifIdRef = useRef<number | null>(null);
   const [catalogs, setCatalogs] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -293,7 +306,8 @@ export default function AdminShell({
       !canFetchCatalogs &&
       !canFetchProducts &&
       !canFetchUsersAndRoles &&
-      !canFetchConfig
+      !canFetchConfig &&
+      !user.isSuperAdmin
     ) {
       return {
         orders: [] as OrderRecord[],
@@ -304,6 +318,8 @@ export default function AdminShell({
         roles: [] as AdminRole[],
         users: [] as AdminUserRecord[],
         config: null as AdminConfigPayload | null,
+        notifications: [] as AdminNotification[],
+        unreadCount: 0,
       };
     }
 
@@ -324,6 +340,7 @@ export default function AdminShell({
       rolesJson,
       usersJson,
       cfgJson,
+      notifJson,
     ] = await Promise.all([
       canFetchOrders
         ? (fetchJson("/api/admin/orders") as Promise<{
@@ -359,6 +376,12 @@ export default function AdminShell({
       canFetchConfig
         ? (fetchJson("/api/admin/config") as Promise<AdminConfigPayload | null>)
         : Promise.resolve(null),
+      user.isSuperAdmin
+        ? (fetchJson("/api/admin/notifications") as Promise<{
+            notifications?: AdminNotification[];
+            unreadCount?: number;
+          } | null>)
+        : Promise.resolve(null),
     ]);
 
     if (
@@ -381,6 +404,10 @@ export default function AdminShell({
       roles: Array.isArray(rolesJson?.roles) ? rolesJson.roles : [],
       users: Array.isArray(usersJson?.users) ? usersJson.users : [],
       config: cfgJson,
+      notifications: Array.isArray(notifJson?.notifications)
+        ? notifJson.notifications
+        : [],
+      unreadCount: Number(notifJson?.unreadCount ?? 0),
     };
   }, [
     canFetchOrders,
@@ -389,6 +416,7 @@ export default function AdminShell({
     canFetchProducts,
     canFetchUsersAndRoles,
     canFetchConfig,
+    user.isSuperAdmin,
   ]);
 
   const fetchAll = useCallback(async () => {
@@ -407,6 +435,9 @@ export default function AdminShell({
       setRoles(data.roles);
       setUsers(data.users);
       setConfig(data.config);
+      setNotifications(data.notifications);
+      setUnreadNotifCount(data.unreadCount);
+      latestNotifIdRef.current = data.notifications[0]?.id ?? null;
     } catch {
       onFlash("error", "Network error loading admin data.");
     } finally {
@@ -432,6 +463,9 @@ export default function AdminShell({
         setRoles(data.roles);
         setUsers(data.users);
         setConfig(data.config);
+        setNotifications(data.notifications);
+        setUnreadNotifCount(data.unreadCount);
+        latestNotifIdRef.current = data.notifications[0]?.id ?? null;
       })
       .catch(() => {
         if (active) onFlash("error", "Network error loading admin data.");
@@ -444,8 +478,80 @@ export default function AdminShell({
     };
   }, [loadAll, onFlash]);
 
+  useEffect(() => {
+    if (!user.isSuperAdmin) return;
+    let active = true;
+
+    const timer = window.setInterval(async () => {
+      try {
+        const res = await fetch("/api/admin/notifications", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok || !active) return;
+        const json = (await res.json()) as {
+          notifications?: AdminNotification[];
+          unreadCount?: number;
+        };
+        const list = Array.isArray(json.notifications) ? json.notifications : [];
+        const top = list[0];
+        const prevLatestId = latestNotifIdRef.current;
+
+        setNotifications(list);
+        setUnreadNotifCount(Number(json.unreadCount ?? 0));
+
+        if (top && prevLatestId !== null && top.id > prevLatestId) {
+          latestNotifIdRef.current = top.id;
+          onFlash("success", `${top.title} — ${top.message}`);
+          void fetchAll();
+        } else if (top && prevLatestId === null) {
+          latestNotifIdRef.current = top.id;
+        }
+      } catch {
+        // Ignore transient background poll errors.
+      }
+    }, 20_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [user.isSuperAdmin, fetchAll, onFlash]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNotifOpen(false);
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      if (
+        notifContainerRef.current &&
+        !notifContainerRef.current.contains(e.target as Node)
+      ) {
+        setNotifOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mousedown", onMouseDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [notifOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileNavOpen]);
+
   function selectTab(tab: AdminTabId) {
     setActiveTab(tab);
+    setMobileNavOpen(false);
+    setNotifOpen(false);
     setFlash(null);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -456,6 +562,41 @@ export default function AdminShell({
       }
       window.history.replaceState(null, "", url.pathname + url.search);
     }
+  }
+
+  async function markNotificationRead(id?: number) {
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(id !== undefined ? { id } : { markAll: true }),
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        notifications?: AdminNotification[];
+        unreadCount?: number;
+      };
+      if (Array.isArray(json.notifications)) {
+        setNotifications(json.notifications);
+      }
+      if (typeof json.unreadCount === "number") {
+        setUnreadNotifCount(json.unreadCount);
+      }
+    } catch {
+      // Ignore transient error.
+    }
+  }
+
+  function openNotificationOrder(item: AdminNotification) {
+    if (!item.read) {
+      void markNotificationRead(item.id);
+    }
+    if (item.orderId) {
+      setFocusedOrderId(item.orderId);
+    }
+    setNotifOpen(false);
+    selectTab("orders");
   }
 
   const publishedProducts = products.filter((p) => p.active);
@@ -475,27 +616,21 @@ export default function AdminShell({
   const pendingOrdersCount =
     (orderStats?.pendingCount ?? 0) + (orderStats?.submittedCount ?? 0);
 
-  return (
-    <div className="min-h-dvh bg-cream text-ink lg:grid lg:grid-cols-[276px_minmax(0,1fr)]">
-      <aside className="flex flex-col border-b-2 border-ink bg-sand p-5 lg:sticky lg:top-0 lg:h-dvh lg:border-r-2 lg:border-b-0 lg:p-6">
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            href="/"
-            className="text-[24px] leading-none font-extrabold tracking-[-0.04em]"
-          >
-            Momo Eliquid
-            <sup className="relative top-[-1.1em] ml-px text-[8px] tracking-normal">
-              ®
-            </sup>
-          </Link>
-          <span className="rounded-full border-2 border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold tracking-[0.08em] uppercase">
-            {user.isSuperAdmin ? "Super Admin" : user.rbacRoleName}
-          </span>
-        </div>
+  const { items: paginatedNotifications, safePage: safeNotifPage } =
+    paginateItems(notifications, notifPage, 6);
+  const { items: paginatedOverviewCatalogs, safePage: safeOverviewCatalogPage } =
+    paginateItems(catalogs, overviewCatalogPage, 5);
+  const { items: paginatedLowStock, safePage: safeOverviewLowStockPage } =
+    paginateItems(lowStockProducts, overviewLowStockPage, 5);
+  const { items: paginatedOverviewOrders, safePage: safeOverviewOrdersPage } =
+    paginateItems(orders, overviewOrdersPage, 5);
 
+  function renderSidebarNav(onPick?: () => void) {
+    return (
+      <>
         <nav
           aria-label="Admin sections"
-          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-8 lg:grid-cols-1 lg:gap-2.5"
+          className="mt-6 grid grid-cols-1 gap-2 lg:mt-8 lg:gap-2.5"
         >
           {allowedTabs.map((tab) => {
             const isActive = effectiveTab === tab.id;
@@ -517,7 +652,10 @@ export default function AdminShell({
                 key={tab.id}
                 type="button"
                 aria-current={isActive ? "page" : undefined}
-                onClick={() => selectTab(tab.id)}
+                onClick={() => {
+                  selectTab(tab.id);
+                  onPick?.();
+                }}
                 className={`flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-3 text-left transition ${
                   isActive
                     ? "border-ink bg-ink text-cream shadow-[4px_4px_0_var(--color-lime)]"
@@ -531,7 +669,7 @@ export default function AdminShell({
                       {tab.label}
                     </span>
                     <span
-                      className={`hidden truncate text-[11px] lg:block ${
+                      className={`block truncate text-[11px] ${
                         isActive ? "text-cream/75" : "text-ink/60"
                       }`}
                     >
@@ -541,7 +679,7 @@ export default function AdminShell({
                 </span>
                 {badgeText !== undefined && (
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
                       isActive
                         ? "bg-lime text-ink"
                         : "border border-ink/25 bg-white text-ink"
@@ -555,7 +693,7 @@ export default function AdminShell({
           })}
         </nav>
 
-        <div className="mt-5 flex flex-col gap-3 border-t-2 border-ink/15 pt-4 lg:mt-auto">
+        <div className="mt-auto flex flex-col gap-3 border-t-2 border-ink/15 pt-4">
           <div className="rounded-2xl border-2 border-ink bg-cream px-3.5 py-3">
             <p className="truncate text-sm font-extrabold">
               {user.name || user.email}
@@ -576,30 +714,119 @@ export default function AdminShell({
             <AdminSignOutButton className="flex-1 px-3 text-xs" />
           </div>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-dvh overflow-x-clip bg-cream text-ink lg:grid lg:grid-cols-[276px_minmax(0,1fr)]">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:overflow-y-auto lg:border-r-2 lg:border-ink lg:bg-sand lg:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="text-[24px] leading-none font-extrabold tracking-[-0.04em]"
+          >
+            Momo Eliquid
+            <sup className="relative top-[-1.1em] ml-px text-[8px] tracking-normal">
+              ®
+            </sup>
+          </Link>
+          <span className="rounded-full border-2 border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold tracking-[0.08em] uppercase">
+            {user.isSuperAdmin ? "Super Admin" : user.rbacRoleName}
+          </span>
+        </div>
+
+        {renderSidebarNav()}
       </aside>
 
-      <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-10 border-b-2 border-ink bg-cream/95 px-5 py-4 backdrop-blur-sm sm:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-extrabold tracking-[0.12em] uppercase text-ink/60">
-                Admin Portal / {activeTabMeta?.label ?? "Restricted"}
-              </p>
-              <h1 className="text-xl leading-tight font-extrabold tracking-[-0.02em]">
-                {activeTabMeta?.label ?? "No permissions assigned"}
-              </h1>
+      {/* Mobile slide-over drawer */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Admin navigation menu"
+        >
+          <div
+            className="fixed inset-0 bg-ink/50 backdrop-blur-[2px]"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 z-10 flex w-[min(86vw,310px)] flex-col overflow-y-auto border-r-2 border-ink bg-sand p-5 shadow-[6px_0_0_var(--color-ink)]">
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href="/"
+                className="text-[22px] leading-none font-extrabold tracking-[-0.04em]"
+              >
+                Momo Eliquid
+                <sup className="relative top-[-1.1em] ml-px text-[8px] tracking-normal">
+                  ®
+                </sup>
+              </Link>
+              <button
+                type="button"
+                aria-label="Close navigation menu"
+                onClick={() => setMobileNavOpen(false)}
+                className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border-2 border-ink bg-white text-sm font-extrabold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-2.5">
+              <span className="inline-block rounded-full border-2 border-ink bg-lime px-2.5 py-0.5 text-[11px] font-extrabold tracking-[0.08em] uppercase">
+                {user.isSuperAdmin ? "Super Admin" : user.rbacRoleName}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            {renderSidebarNav(() => setMobileNavOpen(false))}
+          </aside>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-20 border-b-2 border-ink bg-cream/95 backdrop-blur-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3 sm:px-8 sm:py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                aria-label="Open admin navigation"
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen(true)}
+                className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-xl border-2 border-ink bg-white shadow-[2px_2px_0_var(--color-ink)] lg:hidden"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+              </button>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] font-extrabold tracking-[0.12em] uppercase text-ink/60 sm:text-[11px]">
+                  Admin Portal / {activeTabMeta?.label ?? "Restricted"}
+                </p>
+                <h1 className="truncate text-lg leading-tight font-extrabold tracking-[-0.02em] sm:text-xl">
+                  {activeTabMeta?.label ?? "No permissions assigned"}
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               {canOpenOrdersTab &&
                 pendingOrdersCount > 0 &&
                 effectiveTab !== "orders" && (
                   <button
                     type="button"
                     onClick={() => selectTab("orders")}
-                    className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-3.5 text-xs font-extrabold text-ink"
+                    className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-lime px-3 text-[11px] font-extrabold text-ink sm:h-9 sm:px-3.5 sm:text-xs"
                   >
-                    {pendingOrdersCount} awaiting payment
+                    {pendingOrdersCount} awaiting
                   </button>
                 )}
               {canOpenInventoryTab &&
@@ -608,26 +835,200 @@ export default function AdminShell({
                   <button
                     type="button"
                     onClick={() => selectTab("inventory")}
-                    className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-pink px-3.5 text-xs font-extrabold text-ink"
+                    className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-pink px-3 text-[11px] font-extrabold text-ink sm:h-9 sm:px-3.5 sm:text-xs"
                   >
                     {lowStockProducts.length} low stock
                   </button>
                 )}
+              {user.isSuperAdmin && (
+                <div ref={notifContainerRef} className="relative">
+                  <button
+                    type="button"
+                    aria-label="Order notifications"
+                    aria-expanded={notifOpen}
+                    onClick={() =>
+                      setNotifOpen((prev) => {
+                        if (!prev) setNotifPage(1);
+                        return !prev;
+                      })
+                    }
+                    className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border-2 border-ink bg-white px-2.5 text-xs font-extrabold hover:bg-lime sm:h-9 sm:px-3"
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                    </svg>
+                    {unreadNotifCount > 0 && (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full border border-ink bg-pink px-1.5 py-0.5 text-[10px] leading-none font-extrabold text-ink">
+                        {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {notifOpen && (
+                    <div
+                      role="region"
+                      aria-label="Super Admin order notifications"
+                      className="fixed inset-x-4 top-[66px] z-40 rounded-[24px] border-2 border-ink bg-white p-4 shadow-[6px_6px_0_var(--color-ink)] sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-[360px]"
+                    >
+                      <div className="flex items-center justify-between gap-2 border-b border-ink/15 pb-3">
+                        <div>
+                          <p className="text-sm font-extrabold">
+                            Order notifications
+                          </p>
+                          <p className="text-[11px] text-ink/65">
+                            {unreadNotifCount > 0
+                              ? `${unreadNotifCount} unread alert${unreadNotifCount === 1 ? "" : "s"}`
+                              : "All caught up"}
+                          </p>
+                        </div>
+                        {unreadNotifCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => void markNotificationRead()}
+                            className="cursor-pointer rounded-full border border-ink bg-sand px-2.5 py-1 text-[11px] font-extrabold hover:bg-lime"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+
+                      {notifications.length === 0 ? (
+                        <p className="py-6 text-center text-xs text-ink/65">
+                          New order alerts will appear here.
+                        </p>
+                      ) : (
+                        <>
+                          <ul className="mt-2 max-h-[60vh] space-y-2 overflow-y-auto pr-0.5">
+                            {paginatedNotifications.map((item) => (
+                              <li key={item.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => openNotificationOrder(item)}
+                                  className={`flex w-full cursor-pointer items-start gap-2.5 rounded-2xl border p-3 text-left transition ${
+                                    item.read
+                                      ? "border-ink/15 bg-cream/40 hover:bg-cream"
+                                      : "border-ink bg-lime/35 hover:bg-lime/55"
+                                  }`}
+                                >
+                                  <span
+                                    className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                                      item.read ? "bg-ink/25" : "bg-pink ring-2 ring-ink"
+                                    }`}
+                                  />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-xs font-extrabold text-ink">
+                                      {item.title}
+                                    </span>
+                                    <span className="mt-0.5 block text-xs text-ink/80">
+                                      {item.message}
+                                    </span>
+                                    <span className="mt-1 block text-[10px] font-semibold text-ink/55">
+                                      {new Date(item.createdAt).toLocaleString(
+                                        "en-GB",
+                                        {
+                                          dateStyle: "short",
+                                          timeStyle: "short",
+                                        },
+                                      )}
+                                    </span>
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                          {notifications.length > 6 && (
+                            <div className="mt-3 border-t border-ink/15 pt-2.5">
+                              <Pagination
+                                compact
+                                variant="admin"
+                                page={safeNotifPage}
+                                pageSize={6}
+                                totalItems={notifications.length}
+                                itemLabel="alerts"
+                                onPageChange={setNotifPage}
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {allowedTabs.length > 0 && (
                 <button
                   type="button"
                   disabled={refreshing}
                   onClick={() => void fetchAll()}
-                  className="inline-flex h-9 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-4 text-xs font-bold hover:bg-sand disabled:opacity-60"
+                  className="inline-flex h-8 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-3 text-[11px] font-bold hover:bg-sand disabled:opacity-60 sm:h-9 sm:px-4 sm:text-xs"
                 >
                   {refreshing ? "Syncing…" : "Sync API"}
                 </button>
               )}
             </div>
           </div>
+
+          {allowedTabs.length > 0 && (
+            <nav
+              aria-label="Quick admin tabs"
+              className="flex gap-1.5 overflow-x-auto border-t border-ink/15 px-4 py-2 sm:px-8 lg:hidden"
+            >
+              {allowedTabs.map((tab) => {
+                const isActive = effectiveTab === tab.id;
+                const badgeText =
+                  tab.id === "orders" && canFetchOrders
+                    ? String(orderStats?.totalOrders ?? orders.length)
+                    : tab.id === "catalog" && canFetchCatalogs
+                      ? String(catalogs.length)
+                      : tab.id === "inventory" && canFetchProducts
+                        ? String(products.length)
+                        : tab.id === "users" && canFetchUsersAndRoles
+                          ? String(users.length)
+                          : tab.id === "roles" && canFetchUsersAndRoles
+                            ? String(roles.length)
+                            : undefined;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => selectTab(tab.id)}
+                    className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-xs font-extrabold whitespace-nowrap ${
+                      isActive
+                        ? "border-ink bg-ink text-cream"
+                        : "border-ink/25 bg-white text-ink"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {badgeText !== undefined && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-extrabold ${
+                          isActive
+                            ? "bg-lime text-ink"
+                            : "bg-sand text-ink"
+                        }`}
+                      >
+                        {badgeText}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </header>
 
-        <main className="flex-1 p-5 sm:p-8 lg:p-10">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10">
           {flash && (
             <div
               role={flash.kind === "error" ? "alert" : "status"}
@@ -750,57 +1151,57 @@ export default function AdminShell({
 
               <section
                 aria-label="Store metrics"
-                className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4"
+                className="grid grid-cols-2 gap-3.5 sm:gap-5 xl:grid-cols-4"
               >
-                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink/65 sm:text-xs">
                     Catalogs
                   </p>
-                  <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
+                  <p className="mt-2.5 text-3xl font-extrabold tracking-[-0.03em] sm:mt-3 sm:text-4xl">
                     {catalogs.length}
                   </p>
-                  <p className="mt-1.5 text-sm text-ink/70">
+                  <p className="mt-1.5 text-xs text-ink/70 sm:text-sm">
                     {catalogs.map((c) => c.short).join(" · ") || "None"}
                   </p>
                 </article>
 
-                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink/65 sm:text-xs">
                     Products
                   </p>
-                  <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
+                  <p className="mt-2.5 text-3xl font-extrabold tracking-[-0.03em] sm:mt-3 sm:text-4xl">
                     {products.length}
                   </p>
-                  <p className="mt-1.5 text-sm text-ink/70">
+                  <p className="mt-1.5 text-xs text-ink/70 sm:text-sm">
                     {publishedProducts.length} published · {draftProducts.length}{" "}
                     draft
                   </p>
                 </article>
 
-                <article className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
-                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/65">
+                <article className="rounded-3xl border-2 border-ink bg-white p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)]">
+                  <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink/65 sm:text-xs">
                     Total Stock Units
                   </p>
-                  <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
+                  <p className="mt-2.5 text-3xl font-extrabold tracking-[-0.03em] sm:mt-3 sm:text-4xl">
                     {totalUnits}
                   </p>
-                  <p className="mt-1.5 text-sm text-ink/70">
+                  <p className="mt-1.5 text-xs text-ink/70 sm:text-sm">
                     Across all storefront SKUs
                   </p>
                 </article>
 
                 <article
-                  className={`rounded-3xl border-2 border-ink p-6 shadow-[5px_5px_0_var(--color-ink)] ${
+                  className={`rounded-3xl border-2 border-ink p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)] ${
                     lowStockProducts.length > 0 ? "bg-pink" : "bg-teal"
                   }`}
                 >
-                  <p className="text-xs font-extrabold tracking-widest uppercase text-ink/80">
+                  <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink/80 sm:text-xs">
                     Low Stock Alerts
                   </p>
-                  <p className="mt-3 text-4xl font-extrabold tracking-[-0.03em]">
+                  <p className="mt-2.5 text-3xl font-extrabold tracking-[-0.03em] sm:mt-3 sm:text-4xl">
                     {lowStockProducts.length}
                   </p>
-                  <p className="mt-1.5 text-sm text-ink/85">
+                  <p className="mt-1.5 text-xs text-ink/85 sm:text-sm">
                     Products at or below {LOW_STOCK_THRESHOLD} units
                   </p>
                 </article>
@@ -823,7 +1224,7 @@ export default function AdminShell({
                     )}
                   </div>
                   <ul className="mt-4 space-y-3">
-                    {catalogs.map((c) => (
+                    {paginatedOverviewCatalogs.map((c) => (
                       <li
                         key={c.slug}
                         className="flex items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-cream/60 px-4 py-3"
@@ -844,6 +1245,19 @@ export default function AdminShell({
                       </li>
                     ))}
                   </ul>
+                  {catalogs.length > 5 && (
+                    <div className="mt-4 border-t border-ink/15 pt-3">
+                      <Pagination
+                        compact
+                        variant="admin"
+                        page={safeOverviewCatalogPage}
+                        pageSize={5}
+                        totalItems={catalogs.length}
+                        itemLabel="catalogs"
+                        onPageChange={setOverviewCatalogPage}
+                      />
+                    </div>
+                  )}
                 </section>
 
                 <section className="rounded-3xl border-2 border-ink bg-white p-6 shadow-[5px_5px_0_var(--color-ink)]">
@@ -867,24 +1281,39 @@ export default function AdminShell({
                       {LOW_STOCK_THRESHOLD} units).
                     </p>
                   ) : (
-                    <ul className="mt-4 space-y-3">
-                      {lowStockProducts.map((p) => (
-                        <li
-                          key={p.id}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-sand/70 px-4 py-3"
-                        >
-                          <div>
-                            <p className="text-sm font-extrabold">{p.name}</p>
-                            <p className="text-xs text-ink/65">
-                              {formatPrice(p.price)} · {p.category}
-                            </p>
-                          </div>
-                          <span className="rounded-full border border-ink bg-pink px-3 py-0.5 text-xs font-extrabold">
-                            {p.stockQty} left
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mt-4 space-y-3">
+                        {paginatedLowStock.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-sand/70 px-4 py-3"
+                          >
+                            <div>
+                              <p className="text-sm font-extrabold">{p.name}</p>
+                              <p className="text-xs text-ink/65">
+                                {formatPrice(p.price)} · {p.category}
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-ink bg-pink px-3 py-0.5 text-xs font-extrabold">
+                              {p.stockQty} left
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      {lowStockProducts.length > 5 && (
+                        <div className="mt-4 border-t border-ink/15 pt-3">
+                          <Pagination
+                            compact
+                            variant="admin"
+                            page={safeOverviewLowStockPage}
+                            pageSize={5}
+                            totalItems={lowStockProducts.length}
+                            itemLabel="alerts"
+                            onPageChange={setOverviewLowStockPage}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </section>
               </div>
@@ -910,41 +1339,58 @@ export default function AdminShell({
                       No orders have been placed yet.
                     </p>
                   ) : (
-                    <ul className="mt-4 space-y-2.5">
-                      {orders.slice(0, 5).map((o) => (
-                        <li
-                          key={o.id}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-cream/60 px-4 py-3 text-sm"
-                        >
-                          <div>
-                            <p className="font-extrabold">
-                              #{o.orderNumber} · {o.shippingAddress.firstName}{" "}
-                              {o.shippingAddress.lastName}
-                            </p>
-                            <p className="text-xs text-ink/65">
-                              {getPaymentLabel(o.paymentMethod)} · {o.email}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-extrabold">
-                              {formatPrice(o.total)}
-                            </p>
-                            <p className="text-xs font-bold uppercase text-ink/70">
-                              {o.status.replace("_", " ")}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mt-4 space-y-2.5">
+                        {paginatedOverviewOrders.map((o) => (
+                          <li
+                            key={o.id}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-cream/60 px-4 py-3 text-sm"
+                          >
+                            <div>
+                              <p className="font-extrabold">
+                                #{o.orderNumber} · {o.shippingAddress.firstName}{" "}
+                                {o.shippingAddress.lastName}
+                              </p>
+                              <p className="text-xs text-ink/65">
+                                {getPaymentLabel(o.paymentMethod)} · {o.email}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-extrabold">
+                                {formatPrice(o.total)}
+                              </p>
+                              <p className="text-xs font-bold uppercase text-ink/70">
+                                {o.status.replace("_", " ")}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {orders.length > 5 && (
+                        <div className="mt-4 border-t border-ink/15 pt-3">
+                          <Pagination
+                            compact
+                            variant="admin"
+                            page={safeOverviewOrdersPage}
+                            pageSize={5}
+                            totalItems={orders.length}
+                            itemLabel="orders"
+                            onPageChange={setOverviewOrdersPage}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </section>
               )}
             </div>
           ) : effectiveTab === "orders" ? (
             <OrdersTab
+              key={focusedOrderId ?? "default"}
               orders={orders}
               stats={orderStats}
               canWrite={canWriteOrders}
+              focusedOrderId={focusedOrderId}
               onMutated={fetchAll}
               onFlash={onFlash}
             />
