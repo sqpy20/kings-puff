@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { type Category, type Product, bgClass } from "@/lib/catalog";
-import Pagination, { paginateItems } from "./pagination";
 import ProductCard from "./product-card";
 
-const DEFAULT_PAGE_SIZE = 8;
-const PAGE_SIZE_OPTIONS = [8, 12, 24];
-const URL_CHANGE_EVENT = "momo:collection-url-change";
+const BATCH_SIZE = 8;
 
 const sorts = {
   featured: "Featured",
@@ -20,25 +24,15 @@ const sorts = {
 
 type Sort = keyof typeof sorts;
 
-function subscribeUrl(listener: () => void) {
+function subscribePopState(listener: () => void) {
   if (typeof window === "undefined") return () => {};
   window.addEventListener("popstate", listener);
-  window.addEventListener(URL_CHANGE_EVENT, listener);
-  return () => {
-    window.removeEventListener("popstate", listener);
-    window.removeEventListener(URL_CHANGE_EVENT, listener);
-  };
+  return () => window.removeEventListener("popstate", listener);
 }
 
 function readUrlSearchQuery(): string {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("q") ?? "";
-}
-
-function readUrlPage(): number {
-  if (typeof window === "undefined") return 1;
-  const raw = Number(new URLSearchParams(window.location.search).get("page"));
-  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
 }
 
 function Pill({
@@ -77,16 +71,18 @@ export default function CollectionBrowser({
   products: Product[];
 }) {
   const urlQuery = useSyncExternalStore(
-    subscribeUrl,
+    subscribePopState,
     readUrlSearchQuery,
     () => "",
   );
-  const urlPage = useSyncExternalStore(subscribeUrl, readUrlPage, () => 1);
   const [searchEdited, setSearchEdited] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const gridTopRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
 
   const query = searchEdited ? searchDraft : urlQuery;
 
@@ -116,23 +112,66 @@ export default function CollectionBrowser({
     });
   }, [filtered, sort]);
 
-  const { items: shown, safePage } = paginateItems(sorted, urlPage, pageSize);
+  const shown = sorted.slice(0, visibleCount);
+  const hasMore = shown.length < sorted.length;
+  const progressPct =
+    sorted.length > 0
+      ? Math.min(100, Math.round((shown.length / sorted.length) * 100))
+      : 0;
 
-  function syncUrlPage(nextPage: number) {
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    if (nextPage > 1) {
-      url.searchParams.set("page", String(nextPage));
-    } else {
-      url.searchParams.delete("page");
+  const resetScrollBatch = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-    window.history.replaceState(null, "", url.pathname + url.search);
-    window.dispatchEvent(new Event(URL_CHANGE_EVENT));
-  }
+    loadingRef.current = false;
+    setLoadingMore(false);
+    setVisibleCount(BATCH_SIZE);
+  }, []);
+
+  const loadMore = useCallback(() => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoadingMore(true);
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      setVisibleCount((prev) => prev + BATCH_SIZE);
+      loadingRef.current = false;
+      setLoadingMore(false);
+    }, 220);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMore();
+        }
+      },
+      { rootMargin: "240px 0px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore]);
 
   function handleSearchChange(nextValue: string) {
     setSearchEdited(true);
     setSearchDraft(nextValue);
+    resetScrollBatch();
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       if (nextValue.trim()) {
@@ -142,31 +181,17 @@ export default function CollectionBrowser({
       }
       url.searchParams.delete("page");
       window.history.replaceState(null, "", url.pathname + url.search);
-      window.dispatchEvent(new Event(URL_CHANGE_EVENT));
     }
   }
 
   function handleSortChange(nextSort: Sort) {
     setSort(nextSort);
-    syncUrlPage(1);
-  }
-
-  function handlePageSizeChange(nextSize: number) {
-    setPageSize(nextSize);
-    syncUrlPage(1);
-  }
-
-  function handlePageChange(nextPage: number) {
-    syncUrlPage(nextPage);
-    gridTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    resetScrollBatch();
   }
 
   return (
     <>
-      <div
-        ref={gridTopRef}
-        className="mt-6 flex scroll-mt-24 flex-col gap-4 lg:mt-[32px] xl:flex-row xl:items-center xl:justify-between"
-      >
+      <div className="mt-6 flex flex-col gap-4 lg:mt-[32px] xl:flex-row xl:items-center xl:justify-between">
         <nav aria-label="Categories" className="flex flex-wrap gap-2 sm:gap-2.5">
           <Pill href="/shop" active={!active} dot="bg-cream">
             All
@@ -229,17 +254,64 @@ export default function CollectionBrowser({
         </ul>
       )}
 
-      <Pagination
-        variant="storefront"
-        page={safePage}
-        pageSize={pageSize}
-        totalItems={sorted.length}
-        itemLabel="products"
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        className="mt-10 lg:mt-[52px]"
-      />
+      {sorted.length > 0 && (
+        <div className="mt-10 flex flex-col items-center gap-3 text-center lg:mt-[52px]">
+          <p aria-live="polite" className="text-sm font-semibold text-ink/80">
+            Showing <strong className="font-extrabold text-ink">{shown.length}</strong>{" "}
+            of <strong className="font-extrabold text-ink">{sorted.length}</strong>{" "}
+            products
+          </p>
+
+          <div
+            aria-hidden="true"
+            className="h-2 w-48 overflow-hidden rounded-full border-2 border-ink bg-white"
+          >
+            <div
+              className="h-full bg-lime transition-[width] duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          {hasMore ? (
+            <div
+              ref={sentinelRef}
+              className="mt-1 flex min-h-12 flex-col items-center justify-center gap-2"
+            >
+              {loadingMore ? (
+                <div
+                  role="status"
+                  className="inline-flex h-11 items-center gap-2.5 rounded-full border-2 border-ink bg-lime px-6 text-sm font-extrabold text-ink"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="size-3.5 animate-spin rounded-full border-2 border-ink border-t-transparent"
+                  />
+                  Loading more products…
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    className="inline-flex h-11 cursor-pointer items-center rounded-full border-2 border-ink bg-white px-6 text-sm font-extrabold text-ink transition hover:bg-lime"
+                  >
+                    Load more products
+                  </button>
+                  <p className="text-xs font-medium text-ink/60">
+                    Scroll down to load more
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            sorted.length > BATCH_SIZE && (
+              <span className="mt-1 inline-flex items-center rounded-full border-2 border-ink bg-sand px-4 py-1 text-xs font-extrabold text-ink">
+                All {sorted.length} products loaded
+              </span>
+            )
+          )}
+        </div>
+      )}
     </>
   );
 }
