@@ -297,10 +297,6 @@ export default function UsersTab({
           <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
             User management
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Provision staff accounts, assign RBAC roles, monitor active
-            sessions, and suspend or remove access.
-          </p>
         </div>
 
         {canWrite ? (
@@ -654,13 +650,12 @@ export default function UsersTab({
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2 text-xs">
                 <span
-                  className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 font-extrabold ${
-                    u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
-                      ? "bg-lime text-ink"
-                      : u.permissions.length > 0
-                        ? "bg-teal text-ink"
-                        : "bg-sand text-ink"
-                  }`}
+                  className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 font-extrabold ${u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
+                    ? "bg-lime text-ink"
+                    : u.permissions.length > 0
+                      ? "bg-teal text-ink"
+                      : "bg-sand text-ink"
+                    }`}
                 >
                   {u.rbacRoleName}
                 </span>
@@ -780,13 +775,12 @@ export default function UsersTab({
                     </td>
                     <td className="py-3.5 pr-4">
                       <span
-                        className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-extrabold ${
-                          u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
-                            ? "bg-lime text-ink"
-                            : u.permissions.length > 0
-                              ? "bg-teal text-ink"
-                              : "bg-sand text-ink"
-                        }`}
+                        className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-extrabold ${u.rbacRole === SYSTEM_ROLES.SUPER_ADMIN
+                          ? "bg-lime text-ink"
+                          : u.permissions.length > 0
+                            ? "bg-teal text-ink"
+                            : "bg-sand text-ink"
+                          }`}
                       >
                         {u.rbacRoleName}
                       </span>

@@ -173,9 +173,6 @@ export default function CatalogTab({
           <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
             Catalogs &amp; collections
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Manage storefront categories stored in Postgres (<code>public.catalogs</code>).
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -313,11 +310,10 @@ export default function CatalogTab({
                       onClick={() => setForm((prev) => ({ ...prev, color: c }))}
                       aria-label={`Color ${c}`}
                       aria-pressed={selected}
-                      className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 border-ink px-3 text-xs font-bold capitalize ${
-                        selected
-                          ? "bg-ink text-white"
-                          : "bg-white text-ink hover:bg-sand"
-                      }`}
+                      className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 border-ink px-3 text-xs font-bold capitalize ${selected
+                        ? "bg-ink text-white"
+                        : "bg-white text-ink hover:bg-sand"
+                        }`}
                     >
                       <span
                         className={`size-3.5 rounded-full border border-ink ${bgClass[c]}`}
@@ -369,11 +365,10 @@ export default function CatalogTab({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-bold ${bgClass[c.color]} ${
-                      c.color === "purple" || c.color === "ink"
-                        ? "text-white"
-                        : "text-ink"
-                    }`}
+                    className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-bold ${bgClass[c.color]} ${c.color === "purple" || c.color === "ink"
+                      ? "text-white"
+                      : "text-ink"
+                      }`}
                   >
                     {c.label}
                   </span>
@@ -477,11 +472,10 @@ export default function CatalogTab({
                     <td className="py-4 pr-4">
                       <div className="flex items-center gap-2.5">
                         <span
-                          className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-bold ${bgClass[c.color]} ${
-                            c.color === "purple" || c.color === "ink"
-                              ? "text-white"
-                              : "text-ink"
-                          }`}
+                          className={`inline-flex rounded-full border border-ink px-3 py-0.5 text-xs font-bold ${bgClass[c.color]} ${c.color === "purple" || c.color === "ink"
+                            ? "text-white"
+                            : "text-ink"
+                            }`}
                         >
                           {c.label}
                         </span>

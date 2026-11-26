@@ -460,10 +460,6 @@ export default function PaymentsTab({
               content
             </em>
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Customize what customers see on the Order Received &amp; Payment
-            page for Gift Cards, Bank Transfer, and Cryptocurrency.
-          </p>
         </div>
         {!canWrite && (
           <span className="rounded-full border-2 border-ink bg-sand px-3.5 py-1 text-xs font-extrabold uppercase">

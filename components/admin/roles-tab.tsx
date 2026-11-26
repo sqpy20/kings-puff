@@ -168,23 +168,19 @@ function ToggleSwitch({
       aria-label={label}
       disabled={disabled}
       onClick={onToggle}
-      className={`group inline-flex items-center gap-2 rounded-full border-2 border-ink px-2.5 py-1 text-xs font-extrabold transition ${
-        disabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
-      } ${
-        checked
+      className={`group inline-flex items-center gap-2 rounded-full border-2 border-ink px-2.5 py-1 text-xs font-extrabold transition ${disabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+        } ${checked
           ? "bg-lime text-ink shadow-[2px_2px_0_var(--color-ink)]"
           : "bg-sand/70 text-ink/70 hover:bg-white"
-      }`}
+        }`}
     >
       <span
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-ink transition-colors ${
-          checked ? "bg-ink" : "bg-white"
-        }`}
+        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-ink transition-colors ${checked ? "bg-ink" : "bg-white"
+          }`}
       >
         <span
-          className={`inline-block size-2.5 rounded-full transition-transform ${
-            checked ? "translate-x-3.5 bg-lime" : "translate-x-0.5 bg-ink/45"
-          }`}
+          className={`inline-block size-2.5 rounded-full transition-transform ${checked ? "translate-x-3.5 bg-lime" : "translate-x-0.5 bg-ink/45"
+            }`}
         />
       </span>
       <span>{label}</span>
@@ -465,10 +461,6 @@ export default function RolesTab({
           <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
             Roles &amp; permissions
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Select a role on the left to inspect members and toggle module
-            permissions cleanly.
-          </p>
         </div>
 
         {canWrite ? (
@@ -517,11 +509,10 @@ export default function RolesTab({
                     type="button"
                     onClick={() => selectRole(role.slug)}
                     aria-current={isSelected ? "true" : undefined}
-                    className={`w-full cursor-pointer rounded-2xl border-2 p-3.5 text-left transition ${
-                      isSelected
-                        ? "border-ink bg-ink text-cream shadow-[4px_4px_0_var(--color-lime)]"
-                        : "border-ink/20 bg-cream/60 text-ink hover:border-ink hover:bg-white"
-                    }`}
+                    className={`w-full cursor-pointer rounded-2xl border-2 p-3.5 text-left transition ${isSelected
+                      ? "border-ink bg-ink text-cream shadow-[4px_4px_0_var(--color-lime)]"
+                      : "border-ink/20 bg-cream/60 text-ink hover:border-ink hover:bg-white"
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -537,22 +528,20 @@ export default function RolesTab({
                           )}
                         </div>
                         <code
-                          className={`mt-0.5 block truncate text-[11px] ${
-                            isSelected ? "text-cream/70" : "text-ink/55"
-                          }`}
+                          className={`mt-0.5 block truncate text-[11px] ${isSelected ? "text-cream/70" : "text-ink/55"
+                            }`}
                         >
                           {role.slug}
                         </code>
                       </div>
 
                       <span
-                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                          isSelected
-                            ? "border-lime bg-lime text-ink"
-                            : role.isSystem
-                              ? "border-ink/30 bg-sand text-ink"
-                              : "border-ink/30 bg-teal/50 text-ink"
-                        }`}
+                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase ${isSelected
+                          ? "border-lime bg-lime text-ink"
+                          : role.isSystem
+                            ? "border-ink/30 bg-sand text-ink"
+                            : "border-ink/30 bg-teal/50 text-ink"
+                          }`}
                       >
                         {role.slug === SYSTEM_ROLES.SUPER_ADMIN
                           ? "Locked"
@@ -564,9 +553,8 @@ export default function RolesTab({
 
                     <div className="mt-3 space-y-1.5">
                       <div
-                        className={`flex items-center justify-between text-[11px] font-bold ${
-                          isSelected ? "text-cream/85" : "text-ink/70"
-                        }`}
+                        className={`flex items-center justify-between text-[11px] font-bold ${isSelected ? "text-cream/85" : "text-ink/70"
+                          }`}
                       >
                         <span>
                           {draft.permissions.length}/{ALL_PERMISSION_KEYS.length}{" "}
@@ -577,15 +565,13 @@ export default function RolesTab({
                         </span>
                       </div>
                       <div
-                        className={`h-1.5 overflow-hidden rounded-full ${
-                          isSelected ? "bg-white/20" : "bg-ink/10"
-                        }`}
+                        className={`h-1.5 overflow-hidden rounded-full ${isSelected ? "bg-white/20" : "bg-ink/10"
+                          }`}
                       >
                         <div
                           style={{ width: `${pct}%` }}
-                          className={`h-full rounded-full transition-all ${
-                            isSelected ? "bg-lime" : "bg-ink"
-                          }`}
+                          className={`h-full rounded-full transition-all ${isSelected ? "bg-lime" : "bg-ink"
+                            }`}
                         />
                       </div>
                     </div>
@@ -883,9 +869,8 @@ export default function RolesTab({
                     </label>
                   )}
                   <label
-                    className={`block text-xs font-bold text-ink ${
-                      activeRole.isSystem ? "sm:col-span-2" : ""
-                    }`}
+                    className={`block text-xs font-bold text-ink ${activeRole.isSystem ? "sm:col-span-2" : ""
+                      }`}
                   >
                     Description
                     <input

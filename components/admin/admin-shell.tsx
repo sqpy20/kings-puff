@@ -344,43 +344,43 @@ export default function AdminShell({
     ] = await Promise.all([
       canFetchOrders
         ? (fetchJson("/api/admin/orders") as Promise<{
-            orders?: OrderRecord[];
-            stats?: AdminOrderStats;
-          } | null>)
+          orders?: OrderRecord[];
+          stats?: AdminOrderStats;
+        } | null>)
         : Promise.resolve(null),
       canFetchPaymentSettings
         ? (fetchJson("/api/admin/payment-settings") as Promise<{
-            paymentSettings?: PaymentSettings;
-          } | null>)
+          paymentSettings?: PaymentSettings;
+        } | null>)
         : Promise.resolve(null),
       canFetchCatalogs
         ? (fetchJson("/api/admin/catalogs") as Promise<{
-            catalogs?: Category[];
-          } | null>)
+          catalogs?: Category[];
+        } | null>)
         : Promise.resolve(null),
       canFetchProducts
         ? (fetchJson("/api/admin/products") as Promise<{
-            products?: Product[];
-          } | null>)
+          products?: Product[];
+        } | null>)
         : Promise.resolve(null),
       canFetchUsersAndRoles
         ? (fetchJson("/api/admin/roles") as Promise<{
-            roles?: AdminRole[];
-          } | null>)
+          roles?: AdminRole[];
+        } | null>)
         : Promise.resolve(null),
       canFetchUsersAndRoles
         ? (fetchJson("/api/admin/users") as Promise<{
-            users?: AdminUserRecord[];
-          } | null>)
+          users?: AdminUserRecord[];
+        } | null>)
         : Promise.resolve(null),
       canFetchConfig
         ? (fetchJson("/api/admin/config") as Promise<AdminConfigPayload | null>)
         : Promise.resolve(null),
       user.isSuperAdmin
         ? (fetchJson("/api/admin/notifications") as Promise<{
-            notifications?: AdminNotification[];
-            unreadCount?: number;
-          } | null>)
+          notifications?: AdminNotification[];
+          unreadCount?: number;
+        } | null>)
         : Promise.resolve(null),
     ]);
 
@@ -656,11 +656,10 @@ export default function AdminShell({
                   selectTab(tab.id);
                   onPick?.();
                 }}
-                className={`flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-3 text-left transition ${
-                  isActive
+                className={`flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-3 text-left transition ${isActive
                     ? "border-ink bg-ink text-cream shadow-[4px_4px_0_var(--color-lime)]"
                     : "border-transparent bg-cream/70 text-ink hover:border-ink hover:bg-white"
-                }`}
+                  }`}
               >
                 <span className="flex min-w-0 items-center gap-2.5">
                   <TabIcon id={tab.id} />
@@ -669,9 +668,8 @@ export default function AdminShell({
                       {tab.label}
                     </span>
                     <span
-                      className={`block truncate text-[11px] ${
-                        isActive ? "text-cream/75" : "text-ink/60"
-                      }`}
+                      className={`block truncate text-[11px] ${isActive ? "text-cream/75" : "text-ink/60"
+                        }`}
                     >
                       {tab.hint}
                     </span>
@@ -679,11 +677,10 @@ export default function AdminShell({
                 </span>
                 {badgeText !== undefined && (
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
-                      isActive
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${isActive
                         ? "bg-lime text-ink"
                         : "border border-ink/25 bg-white text-ink"
-                    }`}
+                      }`}
                   >
                     {badgeText}
                   </span>
@@ -915,16 +912,14 @@ export default function AdminShell({
                                 <button
                                   type="button"
                                   onClick={() => openNotificationOrder(item)}
-                                  className={`flex w-full cursor-pointer items-start gap-2.5 rounded-2xl border p-3 text-left transition ${
-                                    item.read
+                                  className={`flex w-full cursor-pointer items-start gap-2.5 rounded-2xl border p-3 text-left transition ${item.read
                                       ? "border-ink/15 bg-cream/40 hover:bg-cream"
                                       : "border-ink bg-lime/35 hover:bg-lime/55"
-                                  }`}
+                                    }`}
                                 >
                                   <span
-                                    className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                                      item.read ? "bg-ink/25" : "bg-pink ring-2 ring-ink"
-                                    }`}
+                                    className={`mt-1.5 size-2 shrink-0 rounded-full ${item.read ? "bg-ink/25" : "bg-pink ring-2 ring-ink"
+                                      }`}
                                   />
                                   <span className="min-w-0 flex-1">
                                     <span className="block text-xs font-extrabold text-ink">
@@ -1003,20 +998,18 @@ export default function AdminShell({
                     key={tab.id}
                     type="button"
                     onClick={() => selectTab(tab.id)}
-                    className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-xs font-extrabold whitespace-nowrap ${
-                      isActive
+                    className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-xs font-extrabold whitespace-nowrap ${isActive
                         ? "border-ink bg-ink text-cream"
                         : "border-ink/25 bg-white text-ink"
-                    }`}
+                      }`}
                   >
                     <span>{tab.label}</span>
                     {badgeText !== undefined && (
                       <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-extrabold ${
-                          isActive
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-extrabold ${isActive
                             ? "bg-lime text-ink"
                             : "bg-sand text-ink"
-                        }`}
+                          }`}
                       >
                         {badgeText}
                       </span>
@@ -1032,11 +1025,10 @@ export default function AdminShell({
           {flash && (
             <div
               role={flash.kind === "error" ? "alert" : "status"}
-              className={`mb-6 flex items-center justify-between gap-4 rounded-2xl border-2 px-4 py-3 text-sm font-bold ${
-                flash.kind === "error"
+              className={`mb-6 flex items-center justify-between gap-4 rounded-2xl border-2 px-4 py-3 text-sm font-bold ${flash.kind === "error"
                   ? "border-[#c8102e] bg-[#fff5f6] text-[#c8102e]"
                   : "border-ink bg-lime text-ink"
-              }`}
+                }`}
             >
               <span>{flash.text}</span>
               <button
@@ -1102,11 +1094,6 @@ export default function AdminShell({
                       overview.
                     </em>
                   </h2>
-                  <p className="mt-1.5 text-sm text-ink/70">
-                    Live merchandising metrics pulled directly from{" "}
-                    <code>/api/admin/catalogs</code> and{" "}
-                    <code>/api/admin/products</code>.
-                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -1191,9 +1178,8 @@ export default function AdminShell({
                 </article>
 
                 <article
-                  className={`rounded-3xl border-2 border-ink p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)] ${
-                    lowStockProducts.length > 0 ? "bg-pink" : "bg-teal"
-                  }`}
+                  className={`rounded-3xl border-2 border-ink p-4 shadow-[4px_4px_0_var(--color-ink)] sm:p-6 sm:shadow-[5px_5px_0_var(--color-ink)] ${lowStockProducts.length > 0 ? "bg-pink" : "bg-teal"
+                    }`}
                 >
                   <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink/80 sm:text-xs">
                     Low Stock Alerts

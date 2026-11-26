@@ -84,11 +84,10 @@ function OrderDetailPanel({
                 type="button"
                 disabled={!canWrite || active || updatingStatus !== null}
                 onClick={() => void onChangeStatus(order, opt.id)}
-                className={`h-9 cursor-pointer rounded-xl border-2 border-ink px-2.5 text-xs font-extrabold transition disabled:cursor-default ${
-                  active
-                    ? "bg-ink text-cream"
-                    : "bg-cream hover:bg-lime disabled:opacity-50"
-                }`}
+                className={`h-9 cursor-pointer rounded-xl border-2 border-ink px-2.5 text-xs font-extrabold transition disabled:cursor-default ${active
+                  ? "bg-ink text-cream"
+                  : "bg-cream hover:bg-lime disabled:opacity-50"
+                  }`}
               >
                 {updatingStatus === opt.id ? "Updating…" : opt.label}
               </button>
@@ -186,11 +185,11 @@ function OrderDetailPanel({
             <span className="font-extrabold uppercase">Attribution: </span>
             {[
               order.attribution.refSource &&
-                `ref=${order.attribution.refSource}`,
+              `ref=${order.attribution.refSource}`,
               order.attribution.utmSource &&
-                `utm_source=${order.attribution.utmSource}`,
+              `utm_source=${order.attribution.utmSource}`,
               order.attribution.utmCampaign &&
-                `utm_campaign=${order.attribution.utmCampaign}`,
+              `utm_campaign=${order.attribution.utmCampaign}`,
             ]
               .filter(Boolean)
               .join(" · ") || "Direct"}
@@ -309,10 +308,6 @@ export default function OrdersTab({
               orders
             </em>
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Track incoming storefront orders, chosen payment methods, crypto
-            quotes, and customer shipping details.
-          </p>
         </div>
         {!canWrite && (
           <span className="rounded-full border-2 border-ink bg-sand px-3.5 py-1 text-xs font-extrabold uppercase">
@@ -405,9 +400,8 @@ export default function OrdersTab({
                 setMethodFilter("all");
                 setPage(1);
               }}
-              className={`h-9 cursor-pointer rounded-full border-2 border-ink px-3.5 text-xs font-extrabold ${
-                methodFilter === "all" ? "bg-ink text-cream" : "bg-white"
-              }`}
+              className={`h-9 cursor-pointer rounded-full border-2 border-ink px-3.5 text-xs font-extrabold ${methodFilter === "all" ? "bg-ink text-cream" : "bg-white"
+                }`}
             >
               All methods
             </button>
@@ -419,9 +413,8 @@ export default function OrdersTab({
                   setMethodFilter(m.id);
                   setPage(1);
                 }}
-                className={`h-9 cursor-pointer rounded-full border-2 border-ink px-3.5 text-xs font-extrabold ${
-                  methodFilter === m.id ? "bg-ink text-cream" : "bg-white"
-                }`}
+                className={`h-9 cursor-pointer rounded-full border-2 border-ink px-3.5 text-xs font-extrabold ${methodFilter === m.id ? "bg-ink text-cream" : "bg-white"
+                  }`}
               >
                 {m.label}
               </button>
@@ -436,9 +429,8 @@ export default function OrdersTab({
               setStatusFilter("all");
               setPage(1);
             }}
-            className={`h-8 cursor-pointer rounded-full border border-ink px-3 text-xs font-bold ${
-              statusFilter === "all" ? "bg-sand font-extrabold" : "bg-white"
-            }`}
+            className={`h-8 cursor-pointer rounded-full border border-ink px-3 text-xs font-bold ${statusFilter === "all" ? "bg-sand font-extrabold" : "bg-white"
+              }`}
           >
             All statuses
           </button>
@@ -450,9 +442,8 @@ export default function OrdersTab({
                 setStatusFilter(s.id);
                 setPage(1);
               }}
-              className={`h-8 cursor-pointer rounded-full border border-ink px-3 text-xs font-bold ${
-                statusFilter === s.id ? "bg-sand font-extrabold" : "bg-white"
-              }`}
+              className={`h-8 cursor-pointer rounded-full border border-ink px-3 text-xs font-bold ${statusFilter === s.id ? "bg-sand font-extrabold" : "bg-white"
+                }`}
             >
               {s.label}
             </button>
@@ -539,9 +530,8 @@ export default function OrdersTab({
                     onClick={() =>
                       setExpandedMobileId(isExpanded ? null : order.id)
                     }
-                    className={`mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border-2 border-ink text-xs font-extrabold ${
-                      isExpanded ? "bg-ink text-cream" : "bg-sand text-ink"
-                    }`}
+                    className={`mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border-2 border-ink text-xs font-extrabold ${isExpanded ? "bg-ink text-cream" : "bg-sand text-ink"
+                      }`}
                   >
                     {isExpanded ? "Hide order details" : "View order details & status"}
                   </button>
@@ -654,11 +644,10 @@ export default function OrdersTab({
                             <button
                               type="button"
                               onClick={() => setSelectedId(order.id)}
-                              className={`inline-flex h-8 cursor-pointer items-center rounded-full border border-ink px-3 text-xs font-extrabold ${
-                                isSelected
-                                  ? "bg-ink text-cream"
-                                  : "bg-white hover:bg-lime"
-                              }`}
+                              className={`inline-flex h-8 cursor-pointer items-center rounded-full border border-ink px-3 text-xs font-extrabold ${isSelected
+                                ? "bg-ink text-cream"
+                                : "bg-white hover:bg-lime"
+                                }`}
                             >
                               {isSelected ? "Viewing" : "Details"}
                             </button>

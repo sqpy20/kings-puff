@@ -346,10 +346,6 @@ export default function InventoryTab({
           <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[32px]">
             Products &amp; inventory
           </h2>
-          <p className="mt-1 text-sm text-ink/70">
-            Create, edit, publish, and adjust live stock levels stored in{" "}
-            <code>public.products</code>.
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -809,11 +805,10 @@ export default function InventoryTab({
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream px-3 py-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-bold ${bgClass[color]} ${
-                      color === "purple" || color === "ink"
-                        ? "text-white"
-                        : "text-ink"
-                    }`}
+                    className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-[11px] font-bold ${bgClass[color]} ${color === "purple" || color === "ink"
+                      ? "text-white"
+                      : "text-ink"
+                      }`}
                   >
                     {cat?.label ?? product.categoryLabel ?? product.category}
                   </span>
@@ -827,11 +822,10 @@ export default function InventoryTab({
                         `${product.active ? "Unpublished" : "Published"} "${product.name}".`,
                       )
                     }
-                    className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-70 ${
-                      product.active
-                        ? "bg-teal text-ink"
-                        : "bg-sand text-ink/70"
-                    }`}
+                    className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-70 ${product.active
+                      ? "bg-teal text-ink"
+                      : "bg-sand text-ink/70"
+                      }`}
                   >
                     {product.active ? "Published" : "Draft"}
                   </button>
@@ -859,9 +853,8 @@ export default function InventoryTab({
                     −
                   </button>
                   <span
-                    className={`min-w-[44px] rounded-lg border border-ink px-2 py-0.5 text-center text-xs font-extrabold ${
-                      isLow ? "bg-pink text-ink" : "bg-white text-ink"
-                    }`}
+                    className={`min-w-[44px] rounded-lg border border-ink px-2 py-0.5 text-center text-xs font-extrabold ${isLow ? "bg-pink text-ink" : "bg-white text-ink"
+                      }`}
                   >
                     {product.stockQty}
                   </span>
@@ -999,11 +992,10 @@ export default function InventoryTab({
                     </td>
                     <td className="py-3.5 pr-4">
                       <span
-                        className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-xs font-bold ${bgClass[color]} ${
-                          color === "purple" || color === "ink"
-                            ? "text-white"
-                            : "text-ink"
-                        }`}
+                        className={`inline-flex rounded-full border border-ink px-2.5 py-0.5 text-xs font-bold ${bgClass[color]} ${color === "purple" || color === "ink"
+                          ? "text-white"
+                          : "text-ink"
+                          }`}
                       >
                         {cat?.label ?? product.categoryLabel ?? product.category}
                       </span>
@@ -1029,9 +1021,8 @@ export default function InventoryTab({
                           −
                         </button>
                         <span
-                          className={`min-w-[52px] rounded-lg border border-ink px-2 py-0.5 text-center text-xs font-extrabold ${
-                            isLow ? "bg-pink text-ink" : "bg-white text-ink"
-                          }`}
+                          className={`min-w-[52px] rounded-lg border border-ink px-2 py-0.5 text-center text-xs font-extrabold ${isLow ? "bg-pink text-ink" : "bg-white text-ink"
+                            }`}
                         >
                           {product.stockQty}
                         </span>
@@ -1064,11 +1055,10 @@ export default function InventoryTab({
                               `${product.active ? "Unpublished" : "Published"} "${product.name}".`,
                             )
                           }
-                          className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-70 ${
-                            product.active
-                              ? "bg-teal text-ink"
-                              : "bg-sand text-ink/70"
-                          }`}
+                          className={`inline-flex h-7 cursor-pointer items-center rounded-full border border-ink px-2.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-70 ${product.active
+                            ? "bg-teal text-ink"
+                            : "bg-sand text-ink/70"
+                            }`}
                         >
                           {product.active ? "Published" : "Draft"}
                         </button>
