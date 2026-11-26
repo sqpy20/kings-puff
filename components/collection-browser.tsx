@@ -50,7 +50,7 @@ function Pill({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink px-4 text-sm font-bold sm:h-[46px] sm:gap-2.5 sm:px-[22px] sm:text-base ${
+      className={`inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink px-4 text-sm font-bold sm:h-11.5 sm:gap-2.5 sm:px-5.5 sm:text-base ${
         active ? "bg-ink text-white" : ""
       }`}
     >
@@ -191,7 +191,7 @@ export default function CollectionBrowser({
 
   return (
     <>
-      <div className="mt-6 flex flex-col gap-4 lg:mt-[32px] xl:flex-row xl:items-center xl:justify-between">
+      <div className="mt-6 flex flex-col gap-4 lg:mt-8 xl:flex-row xl:items-center xl:justify-between">
         <nav aria-label="Categories" className="flex flex-wrap gap-2 sm:gap-2.5">
           <Pill href="/shop" active={!active} dot="bg-cream">
             All
