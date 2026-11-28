@@ -6,6 +6,7 @@ import {
   bgClass,
   formatPrice,
 } from "@/lib/catalog";
+import { isOptimizableImage } from "@/lib/media";
 import AddToBag from "./add-to-bag";
 
 export const badgeClass: Record<Badge, string> = {
@@ -30,7 +31,7 @@ export function ProductArt({
       alt={product.name}
       fill
       sizes={sizes}
-      unoptimized={product.image.startsWith("http")}
+      unoptimized={!isOptimizableImage(product.image)}
       className={className}
     />
   );

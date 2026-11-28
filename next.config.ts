@@ -15,8 +15,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    inlineCss: true,
+  },
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: "https",

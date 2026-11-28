@@ -28,3 +28,9 @@ export const MEDIA_IMAGES = {
   },
   brandLogo: BRAND_LOGO_URL,
 } as const;
+
+/** Returns true for local paths and configured Cloudinary URLs handled by next/image. */
+export function isOptimizableImage(src: string): boolean {
+  if (src.startsWith("/")) return true;
+  return src.startsWith("https://res.cloudinary.com/eshrmvst/");
+}

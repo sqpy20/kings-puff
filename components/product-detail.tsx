@@ -8,6 +8,7 @@ import {
   formatPrice,
   productTag,
 } from "@/lib/catalog";
+import { isOptimizableImage } from "@/lib/media";
 import Footer from "./footer";
 import { ArrowIcon } from "./illustrations";
 import Nav from "./nav";
@@ -70,7 +71,9 @@ export default function ProductDetail({
               fill
               sizes="(min-width: 1024px) 48vw, 100vw"
               preload
-              unoptimized={product.image.startsWith("http")}
+              loading="eager"
+              fetchPriority="high"
+              unoptimized={!isOptimizableImage(product.image)}
               className="object-cover"
             />
           </div>

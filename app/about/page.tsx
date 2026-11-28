@@ -24,7 +24,7 @@ export default function AboutPage() {
       />
       <Nav />
       <main>
-        <Story />
+        <Story priority />
         <Contact padTop />
       </main>
       <Footer />
