@@ -86,7 +86,7 @@ export default function Story() {
               to grab-and-go ExPod Pro pods, every blend delivers clean, layered
               fruit notes from first pull to last.
             </p>
-            <p className="mt-5 max-w-[600px] text-[17px] leading-7 text-white/90">
+            <p className="mt-5 max-w-[600px] text-[17px] leading-7 text-white">
               Beyond vapes, the lineup includes sugar-dusted gummies — Blue
               Raspberry Rings, Wild Berry Bites, and Sour Apple Cubes — dosed
               clearly per piece, alongside small-batch Kush flower sealed fresh
@@ -96,7 +96,7 @@ export default function Story() {
               {badges.map((label) => (
                 <li
                   key={label}
-                  className="inline-flex h-8 items-center rounded-full bg-white/15 px-3.5 text-xs font-bold tracking-[0.04em] text-white sm:text-[13px]"
+                  className="inline-flex h-8 items-center rounded-full border border-white/20 bg-ink/35 px-3.5 text-xs font-bold tracking-[0.04em] text-white sm:text-[13px]"
                 >
                   {label}
                 </li>

@@ -4,7 +4,7 @@ import { ArrowIcon, HeroArt } from "./illustrations";
 export default function Hero() {
   return (
     <section className="shell pt-5 md:pt-3 lg:pt-9">
-      <div className="relative overflow-hidden rounded-[28px] bg-purple lg:flex lg:min-h-150 lg:items-center xl:min-h-178.25">
+      <div className="relative overflow-hidden rounded-[28px] bg-purple text-white lg:flex lg:min-h-150 lg:items-center xl:min-h-178.25">
         <div className="relative z-10 px-6 pt-10 sm:px-10 sm:pt-14 lg:w-[56%] lg:px-14 lg:py-16 xl:px-19.75">
           <p className="inline-flex h-7.25 items-center rounded-full bg-ink px-3.25 text-[11.5px] font-bold tracking-widest text-white uppercase">
             New drop · Summer of colour

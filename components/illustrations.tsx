@@ -7,7 +7,7 @@ export const COLORS = {
   cream: "#fdf3e4",
   lime: "#dbf063",
   pink: "#ee5d87",
-  purple: "#7c58e0",
+  purple: "#6742cc",
   orange: "#ee7847",
   teal: "#7cd8c0",
 } as const;
