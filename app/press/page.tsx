@@ -70,7 +70,7 @@ export default async function PressPage() {
               Momo Eliquid.
             </em>
           </h1>
-          <p className="mt-4 max-w-160 text-lg leading-7 text-white/90">
+          <p className="mt-4 max-w-160 text-lg leading-7 text-white">
             Official logos, verified product details, and ready-to-use partner
             backlink snippets for UK reviewers, creators, and retail stockists.
           </p>

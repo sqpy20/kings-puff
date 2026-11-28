@@ -7,7 +7,7 @@ import NavLinks, { NavLinkList } from "./nav-links";
 export default function Nav() {
   return (
     <>
-      <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-sm font-medium sm:text-sm text-red-500">
+      <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-sm font-medium text-lime sm:text-sm">
         Order before 2PM for same-day dispatch!
       </div>
       <header className="sticky top-0 z-30 border-b border-ink/10 bg-cream">

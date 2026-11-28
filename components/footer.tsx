@@ -60,7 +60,7 @@ export default async function Footer() {
                 type="email"
                 placeholder="you@email.com"
                 aria-label="Email address"
-                className="h-13.75 w-full min-[480px]:w-75 rounded-xl border-2 border-white bg-transparent px-4.5 text-lg outline-none placeholder:text-white/45"
+                className="h-13.75 w-full min-[480px]:w-75 rounded-xl border-2 border-white bg-transparent px-4.5 text-lg outline-none placeholder:text-white/75"
               />
               <button
                 type="submit"
