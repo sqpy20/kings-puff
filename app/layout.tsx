@@ -99,12 +99,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <link
-          rel="preconnect"
-          href="https://res.cloudinary.com"
-          crossOrigin="anonymous"
-        />
-        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
-        <link
           rel="alternate"
           type="text/plain"
           title="LLMs.txt"

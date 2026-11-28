@@ -75,7 +75,7 @@ export function HeroArt({ className }: { className?: string }) {
           <circle cx="393" cy="393" r="214" fill={PURPLE} />
           <circle cx="393" cy="393" r="155" fill={CREAM} />
         </svg>
-        {heroProducts.map((item) => (
+        {heroProducts.map((item, index) => (
           <div
             key={item.src}
             className={`absolute aspect-square overflow-hidden rounded-2xl border-[3px] border-ink shadow-[5px_5px_0_var(--color-ink)] sm:rounded-3xl ${item.className}`}
@@ -85,7 +85,9 @@ export function HeroArt({ className }: { className?: string }) {
               alt={item.alt}
               fill
               sizes={item.sizes}
-              preload
+              preload={index === 0}
+              loading={index === 0 ? undefined : "eager"}
+              fetchPriority={index === 0 ? "high" : undefined}
               className="object-cover"
             />
           </div>
@@ -130,6 +132,7 @@ export function RingsArt({
               fill
               sizes="170px"
               preload
+              fetchPriority="high"
               className="object-cover"
             />
           </div>
