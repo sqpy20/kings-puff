@@ -71,6 +71,7 @@ export default function ProductDetail({
               fill
               sizes="(min-width: 1024px) 48vw, 100vw"
               preload
+              loading="eager"
               fetchPriority="high"
               unoptimized={!isOptimizableImage(product.image)}
               className="object-cover"

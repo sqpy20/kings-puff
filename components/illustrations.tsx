@@ -86,7 +86,7 @@ export function HeroArt({ className }: { className?: string }) {
               fill
               sizes={item.sizes}
               preload={index === 0}
-              loading={index === 0 ? undefined : "eager"}
+              loading="eager"
               fetchPriority={index === 0 ? "high" : undefined}
               className="object-cover"
             />

@@ -62,7 +62,7 @@ function Wave({ flip = false }: { flip?: boolean }) {
   );
 }
 
-export default function Story() {
+export default function Story({ priority = false }: { priority?: boolean }) {
   return (
     <section>
       <Wave />
@@ -112,7 +112,7 @@ export default function Story() {
           </div>
           {/* On desktop the right-hand column of cards sits 52px lower. */}
           <ul className="grid grid-cols-2 gap-4 text-ink lg:w-[50%] lg:gap-x-[18px] lg:gap-y-7 lg:pb-[52px]">
-            {highlights.map((item) => (
+            {highlights.map((item, index) => (
               <li key={item.title} className="lg:even:translate-y-[52px]">
                 <Link
                   href={item.href}
@@ -124,6 +124,9 @@ export default function Story() {
                       alt={item.title}
                       fill
                       sizes="(min-width: 1024px) 22vw, 45vw"
+                      preload={priority && index === 0}
+                      loading={priority || index === 0 ? "eager" : undefined}
+                      fetchPriority={priority && index === 0 ? "high" : undefined}
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
