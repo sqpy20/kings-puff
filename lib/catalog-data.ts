@@ -257,6 +257,8 @@ export function revalidateCatalogCache(target?: {
     revalidateTag(`product:${target.productId}`, { expire: 0 });
   }
   revalidatePath("/", "layout");
+  revalidatePath("/llms.txt");
+  revalidatePath("/llms-full.txt");
 }
 
 /** Fresh uncached read of all catalogs (including inactive product counts) for admin UI. */
