@@ -104,6 +104,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link
+          rel="alternate"
+          type="text/plain"
+          title="LLMs.txt"
+          href="/llms.txt"
+        />
+        <link
+          rel="alternate"
+          type="text/plain"
+          title="LLMs Full Knowledge Base"
+          href="/llms-full.txt"
+        />
       </head>
       <body className="font-sans antialiased">
         <JsonLd data={organizationJsonLd()} />
