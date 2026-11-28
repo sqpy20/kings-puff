@@ -10,7 +10,7 @@ export default function Nav() {
       <div className="flex min-h-12 items-center justify-center bg-ink px-4 py-2 text-center text-sm font-medium text-lime sm:text-sm">
         Order before 2PM for same-day dispatch!
       </div>
-      <header className="sticky top-0 z-30 border-b border-ink/10 bg-cream">
+      <header className="sticky top-0 z-40 border-b border-ink/10 bg-cream">
         <div className="shell flex h-17 items-center justify-between md:h-21.75">
           <Link
             href="/"

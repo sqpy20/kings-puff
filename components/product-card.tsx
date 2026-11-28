@@ -48,7 +48,7 @@ export default function ProductCard({
   const color = product.categoryColor ?? "pink";
   const href = `/products/${product.id}`;
   return (
-    <li className="group relative flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">
+    <li className="group relative isolate flex flex-col overflow-hidden rounded-[20px] bg-white sm:rounded-3xl">
       <div
         className={`relative aspect-square overflow-hidden ${bgClass[color]}`}
       >

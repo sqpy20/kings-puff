@@ -62,7 +62,7 @@ const heroProducts = [
 export function HeroArt({ className }: { className?: string }) {
   return (
     <div className={`aspect-square ${className ?? ""}`}>
-      <div className="relative size-full">
+      <div className="relative isolate size-full">
         <svg
           viewBox="0 0 786 786"
           fill="none"
@@ -109,7 +109,7 @@ export function RingsArt({
 }) {
   return (
     <div className={`aspect-square ${className ?? ""}`}>
-      <div className="relative size-full">
+      <div className="relative isolate size-full">
         <svg
           viewBox="0 0 464 464"
           fill="none"
